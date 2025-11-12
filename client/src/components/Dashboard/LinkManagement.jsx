@@ -13,7 +13,7 @@ import {
 
 // ===== CONFIG =====
 const API_BASE_URL = "https://api.cleanpc.xyz";
-const DEFAULT_PUBLIC_DOMAIN = "protidinernews.xyz";
+const DEFAULT_PUBLIC_DOMAIN = "cleanpc.xyz";
 
 const makePublicUrl = (domain, shortCode) => `https://${domain}/${shortCode}`;
 

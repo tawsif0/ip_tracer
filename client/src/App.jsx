@@ -6,25 +6,25 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-import Layout from "./components/Layout";
-import Dashboard from "./pages/Dashboard";
+// import Layout from "./components/Layout";
+// import Dashboard from "./pages/Dashboard";
 import Redirect from "./pages/Redirect";
-import { useAuth } from "./hooks/useAuth";
-import AuthForm from "./pages/Login";
+// import { useAuth } from "./hooks/useAuth";
+// import AuthForm from "./pages/Login";
 // import ForgotPassword from "./pages/ForgotPassword";
 // import ResetPassword from "./pages/ResetPassword";
 
 function App() {
-  const { user, isLoading } = useAuth();
+  // const { user, isLoading } = useAuth();
 
-  // Show loading spinner while checking authentication
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
-      </div>
-    );
-  }
+  // // Show loading spinner while checking authentication
+  // if (isLoading) {
+  //   return (
+  //     <div className="min-h-screen flex items-center justify-center bg-white">
+  //       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <Router
@@ -35,10 +35,10 @@ function App() {
     >
       <Routes>
         {/* Public routes - redirect to dashboard if already authenticated */}
-        <Route
+        {/* <Route
           path="/login"
           element={user ? <Navigate to="/dashboard" replace /> : <AuthForm />}
-        />
+        /> */}
         {/* <Route
           path="/forgot-password"
           element={
@@ -56,14 +56,13 @@ function App() {
         <Route path="/:shortCode" element={<Redirect />} />
 
         {/* Protected routes */}
-        <Route
+        {/* <Route
           path="/*"
           element={user ? <Layout /> : <Navigate to="/login" replace />}
         >
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
-          {/* Add other protected routes here */}
-        </Route>
+        </Route> */}
       </Routes>
     </Router>
   );
