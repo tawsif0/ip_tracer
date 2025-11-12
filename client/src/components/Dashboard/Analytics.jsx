@@ -21,6 +21,7 @@ import {
   ChartBarIcon,
   UsersIcon,
   EyeIcon,
+  CameraIcon,
 } from "@heroicons/react/24/outline";
 import { format } from "date-fns";
 import Skeleton from "react-loading-skeleton";
@@ -175,7 +176,54 @@ const TableRow = ({ children }) => (
 const TableCell = ({ children }) => (
   <td className="px-6 py-4 whitespace-nowrap text-sm">{children}</td>
 );
-
+const PhotoModal = ({ photoUrl, onClose }) => {
+  return (
+    <div className="min-h-screen fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-[9999]">
+      <div className="bg-white rounded-lg max-w-2xl w-full">
+        <div className="flex justify-between items-center p-4 border-b">
+          <h3 className="text-lg font-semibold">Visitor Photo</h3>
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700 p-2"
+          >
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
+        <div className="p-4">
+          <img
+            src={photoUrl}
+            alt="Visitor"
+            className="w-full h-auto rounded-lg shadow-md"
+            onError={(e) => {
+              e.target.src =
+                "https://via.placeholder.com/400x400?text=Photo+Not+Available";
+            }}
+          />
+        </div>
+        <div className="p-4 border-t bg-gray-50">
+          <button
+            onClick={onClose}
+            className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 const Analytics = ({ stats, links }) => {
   const [selectedLinkId, setSelectedLinkId] = useState(null);
   const [visitLogs, setVisitLogs] = useState([]);
@@ -183,7 +231,8 @@ const Analytics = ({ stats, links }) => {
   const [error, setError] = useState(null);
   const [selectedIp, setSelectedIp] = useState(null);
   const [showIpModal, setShowIpModal] = useState(false);
-
+  const [selectedPhoto, setSelectedPhoto] = useState(null);
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
   // Format data for charts
   const linkData =
     links?.map((link) => ({
@@ -196,10 +245,19 @@ const Analytics = ({ stats, links }) => {
   // Time series data for clicks over time
   const timeSeriesData =
     stats?.timeSeries?.map((item) => ({
-      date: format(new Date(item.date), "MMM dd"),
+      date: format(new Date(item.date), "MMM dd yyyy"),
       clicks: item.count,
     })) || [];
+  const handleViewPhoto = (photoUrl) => {
+    setSelectedPhoto(photoUrl);
+    setShowPhotoModal(true);
+  };
 
+  // Close photo modal
+  const closePhotoModal = () => {
+    setShowPhotoModal(false);
+    setSelectedPhoto(null);
+  };
   // Fetch visit logs when link is selected
   useEffect(() => {
     const fetchVisitLogs = async () => {
@@ -317,7 +375,9 @@ const Analytics = ({ stats, links }) => {
           </div>
         </div>
       )}
-
+      {showPhotoModal && selectedPhoto && (
+        <PhotoModal photoUrl={selectedPhoto} onClose={closePhotoModal} />
+      )}
       {/* Summary Dashboard */}
       <div className="bg-white p-6 rounded-lg shadow">
         <h3 className="text-lg font-medium mb-4">Summary Dashboard</h3>
@@ -451,6 +511,7 @@ const Analytics = ({ stats, links }) => {
                     <TableHeader>Time</TableHeader>
                     <TableHeader>IP Address</TableHeader>
                     <TableHeader>Device</TableHeader>
+                    <TableHeader>Photo</TableHeader>
                     <TableHeader>Actions</TableHeader>
                   </tr>
                 </thead>
@@ -458,7 +519,10 @@ const Analytics = ({ stats, links }) => {
                   {visitLogs.map((visit) => (
                     <TableRow key={visit._id}>
                       <TableCell>
-                        {format(new Date(visit.timestamp), "MMM dd, h:mm a")}
+                        {format(
+                          new Date(visit.timestamp),
+                          "MMM dd yyyy, h:mm:ss a"
+                        )}
                       </TableCell>
                       <TableCell>
                         <div className="font-medium">{visit.publicIp}</div>
@@ -475,13 +539,35 @@ const Analytics = ({ stats, links }) => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <button
-                          onClick={() => handleCheckIp(visit.publicIp)}
-                          className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
-                        >
-                          <EyeIcon className="h-4 w-4 mr-1" />
-                          Check IP
-                        </button>
+                        {visit.hasPhoto ? (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            Available
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                            Not Available
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => handleCheckIp(visit.publicIp)}
+                            className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
+                          >
+                            <EyeIcon className="h-4 w-4 mr-1" />
+                            Check IP
+                          </button>
+                          {visit.hasPhoto && (
+                            <button
+                              onClick={() => handleViewPhoto(visit.photo)}
+                              className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200"
+                            >
+                              <CameraIcon className="h-4 w-4 mr-1" />
+                              View Photo
+                            </button>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

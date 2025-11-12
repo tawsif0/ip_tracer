@@ -13,7 +13,7 @@ const geoLocationSchema = new mongoose.Schema(
     timezone: String,
     isp: String,
     organization: String,
-    asn: String
+    asn: String,
   },
   { _id: false }
 );
@@ -23,13 +23,13 @@ const deviceSchema = new mongoose.Schema(
     type: {
       type: String,
       enum: ["desktop", "mobile", "tablet", "bot", "other"],
-      index: true
+      index: true,
     },
     os: { type: String, index: true },
     browser: { type: String, index: true },
     model: String,
     isMobile: Boolean,
-    isBot: Boolean
+    isBot: Boolean,
   },
   { _id: false }
 );
@@ -40,7 +40,7 @@ const networkSchema = new mongoose.Schema(
     isLocal: Boolean,
     isp: String,
     organization: String,
-    asn: String
+    asn: String,
   },
   { _id: false }
 );
@@ -52,8 +52,8 @@ const referrerSchema = new mongoose.Schema(
     type: {
       type: String,
       enum: ["direct", "organic", "referral", "social", "email", "other"],
-      index: true
-    }
+      index: true,
+    },
   },
   { _id: false }
 );
@@ -64,21 +64,30 @@ const visitSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Link",
       required: true,
-      index: true
+      index: true,
     },
     publicIp: {
       type: String,
       required: true,
-      index: true
+      index: true,
+    },
+    photo: {
+      type: String, // Cloudinary URL
+      default: null,
+    },
+    hasPhoto: {
+      type: Boolean,
+      default: false,
+      index: true,
     },
     internalIp: {
       type: String,
-      index: true
+      index: true,
     },
     userAgent: String,
     sessionId: {
       type: String,
-      index: true
+      index: true,
     },
     device: deviceSchema,
     geo: geoLocationSchema,
@@ -88,13 +97,13 @@ const visitSchema = new mongoose.Schema(
     timestamp: {
       type: Date,
       default: Date.now,
-      index: true
-    }
+      index: true,
+    },
   },
   {
     timestamps: true,
     toJSON: { virtuals: true },
-    toObject: { virtuals: true }
+    toObject: { virtuals: true },
   }
 );
 

