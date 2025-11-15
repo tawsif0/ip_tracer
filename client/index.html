@@ -4,7 +4,22 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>IP Tracer</title>
+    <title>IP Tracker</title>
+    <!-- <script>
+      // Extract short code from URL and update title
+      function updateTitleFromShortCode() {
+        const path = window.location.pathname;
+        // Extract the short code from URL pattern like /r/abc123 or /abc123
+        const match = path.match(/\/(?:r\/)?([^\/]+)$/);
+        if (match && match[1]) {
+          const shortCode = match[1];
+          document.title = `Redirecting to ${shortCode}...`;
+        }
+      }
+
+      // Update title when page loads
+      document.addEventListener("DOMContentLoaded", updateTitleFromShortCode);
+    </script> -->
   </head>
   <body>
     <div id="root"></div>

@@ -14,6 +14,14 @@ const linkSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  enableCamera: {
+    type: Boolean,
+    default: false,
+  },
+  enableLocation: {
+    type: Boolean,
+    default: false,
+  },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",

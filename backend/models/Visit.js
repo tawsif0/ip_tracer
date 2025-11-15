@@ -58,6 +58,25 @@ const referrerSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const locationSchema = new mongoose.Schema(
+  {
+    latitude: { type: Number, index: true },
+    longitude: { type: Number, index: true },
+    accuracy: Number,
+    altitude: Number,
+    altitudeAccuracy: Number,
+    heading: Number,
+    speed: Number,
+    timestamp: Date,
+    source: {
+      type: String,
+      enum: ["browser", "ip"],
+      default: "ip",
+    },
+  },
+  { _id: false }
+);
+
 const visitSchema = new mongoose.Schema(
   {
     link: {
@@ -76,6 +95,12 @@ const visitSchema = new mongoose.Schema(
       default: null,
     },
     hasPhoto: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    location: locationSchema,
+    hasLocation: {
       type: Boolean,
       default: false,
       index: true,
@@ -116,6 +141,31 @@ visitSchema.virtual("geo.formattedAddress").get(function () {
   return parts.join(", ");
 });
 
+visitSchema.virtual("location.formattedCoordinates").get(function () {
+  if (this.location?.latitude && this.location?.longitude) {
+    return `${this.location.latitude.toFixed(
+      6
+    )}, ${this.location.longitude.toFixed(6)}`;
+  }
+  return null;
+});
+
+visitSchema.virtual("location.mapLinks").get(function () {
+  if (!this.location?.latitude || !this.location?.longitude) {
+    return null;
+  }
+
+  const lat = this.location.latitude;
+  const lng = this.location.longitude;
+
+  return {
+    googleMaps: `https://maps.google.com/?q=${lat},${lng}`,
+    openStreetMap: `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=15/${lat}/${lng}`,
+    bingMaps: `https://www.bing.com/maps?cp=${lat}~${lng}&lvl=15`,
+    appleMaps: `https://maps.apple.com/?ll=${lat},${lng}&z=15`,
+  };
+});
+
 // Indexes
 visitSchema.index({ "geo.country": 1 });
 visitSchema.index({ "geo.city": 1 });
@@ -125,9 +175,24 @@ visitSchema.index({ "device.browser": 1 });
 visitSchema.index({ "referrer.type": 1 });
 visitSchema.index({ "referrer.domain": 1 });
 visitSchema.index({ "network.isp": 1 });
+visitSchema.index({ "location.latitude": 1 });
+visitSchema.index({ "location.longitude": 1 });
+visitSchema.index({ "location.source": 1 });
+visitSchema.index({ hasLocation: 1 });
+visitSchema.index({ hasPhoto: 1 });
 visitSchema.index({ createdAt: 1 });
 
 // Add pagination plugin
 visitSchema.plugin(require("mongoose-paginate-v2"));
+
+// Pre-save middleware to automatically set hasLocation
+visitSchema.pre("save", function (next) {
+  if (this.location && this.location.latitude && this.location.longitude) {
+    this.hasLocation = true;
+  } else {
+    this.hasLocation = false;
+  }
+  next();
+});
 
 module.exports = mongoose.model("Visit", visitSchema);

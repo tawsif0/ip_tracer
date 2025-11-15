@@ -9,7 +9,14 @@ router.post("/", auth, linkController.createLink);
 router.get("/user", auth, linkController.getUserLinks);
 router.put("/:id", auth, linkController.updateLink);
 router.delete("/:id", auth, linkController.deleteLink);
-router.post("/:shortCode/track-with-photo", linkController.trackVisitWithPhoto);
-// Public redirect route (now handles tracking internally)
-router.get("/:shortCode", ipDetection, linkController.redirectLink);
+
+// ONLY POST ROUTE for creating visit records
+router.post("/:shortCode", ipDetection, linkController.redirectLink);
+
+// Destination route (for getting URL without tracking)
+router.get("/:shortCode/destination", linkController.getLinkDestination);
+
+// Photo serving route
+// router.get("/photos/:filename", linkController.servePhoto);
+
 module.exports = router;
