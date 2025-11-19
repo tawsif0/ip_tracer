@@ -16,7 +16,6 @@ import ResetPassword from "./pages/ResetPassword";
 function App() {
   const { user, isLoading } = useAuth();
 
-  // Show loading spinner while checking authentication
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
@@ -33,7 +32,6 @@ function App() {
       }}
     >
       <Routes>
-        {/* Public routes - redirect to dashboard if already authenticated */}
         <Route
           path="/login"
           element={user ? <Navigate to="/dashboard" replace /> : <AuthForm />}

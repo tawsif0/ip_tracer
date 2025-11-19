@@ -2,35 +2,22 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  AreaChart,
-  Area,
-  LineChart,
-  Line,
-} from "recharts";
-import {
-  GlobeAltIcon,
-  DevicePhoneMobileIcon,
-  ChartBarIcon,
-  UsersIcon,
-  EyeIcon,
-  CameraIcon,
-  MapPinIcon,
-  LinkIcon,
-  CalendarIcon,
-  ClockIcon,
-  CursorArrowRaysIcon,
-} from "@heroicons/react/24/outline";
+  FiRefreshCw,
+  FiGlobe,
+  FiSmartphone,
+  FiBarChart2,
+  FiUsers,
+  FiEye,
+  FiCamera,
+  FiMapPin,
+  FiLink,
+  FiCalendar,
+  FiClock,
+  FiMousePointer,
+  FiInfo,
+  FiDownload,
+  FiFileText,
+} from "react-icons/fi";
 import { format } from "date-fns";
 
 const COLORS = [
@@ -81,19 +68,7 @@ const IPApiDetails = ({ ip }) => {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-red-500">
         <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
-          <svg
-            className="w-8 h-8 text-red-500"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
-            />
-          </svg>
+          <FiInfo className="w-8 h-8 text-red-500" />
         </div>
         <p className="text-lg font-semibold">{error}</p>
       </div>
@@ -101,14 +76,30 @@ const IPApiDetails = ({ ip }) => {
   }
 
   const importantFields = [
-    { key: "country_name", label: "Country", icon: "🌍" },
-    { key: "city", label: "City", icon: "🏙️" },
-    { key: "region", label: "Region", icon: "🗺️" },
-    { key: "org", label: "Organization", icon: "🏢" },
-    { key: "asn", label: "ASN", icon: "🔗" },
-    { key: "timezone", label: "Timezone", icon: "⏰" },
-    { key: "currency", label: "Currency", icon: "💰" },
-    { key: "languages", label: "Languages", icon: "💬" },
+    {
+      key: "country_name",
+      label: "Country",
+      icon: <FiGlobe className="w-6 h-6" />,
+    },
+    { key: "city", label: "City", icon: <FiMapPin className="w-6 h-6" /> },
+    { key: "region", label: "Region", icon: <FiGlobe className="w-6 h-6" /> },
+    { key: "org", label: "Organization", icon: <FiInfo className="w-6 h-6" /> },
+    { key: "asn", label: "ASN", icon: <FiLink className="w-6 h-6" /> },
+    {
+      key: "timezone",
+      label: "Timezone",
+      icon: <FiClock className="w-6 h-6" />,
+    },
+    {
+      key: "currency",
+      label: "Currency",
+      icon: <FiInfo className="w-6 h-6" />,
+    },
+    {
+      key: "languages",
+      label: "Languages",
+      icon: <FiInfo className="w-6 h-6" />,
+    },
   ];
 
   return (
@@ -127,7 +118,7 @@ const IPApiDetails = ({ ip }) => {
             className="bg-gradient-to-br from-white to-gray-50 border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow"
           >
             <div className="flex items-center space-x-3">
-              <span className="text-2xl">{icon}</span>
+              <div className="text-gray-600">{icon}</div>
               <div>
                 <div className="text-sm font-medium text-gray-500">{label}</div>
                 <div className="text-lg font-semibold text-gray-900">
@@ -140,10 +131,27 @@ const IPApiDetails = ({ ip }) => {
       </div>
 
       {ipData && Object.keys(ipData).length > 0 && (
-        <div className="mt-6">
-          <details className="bg-gray-50 rounded-lg p-4">
-            <summary className="cursor-pointer text-sm font-medium text-gray-700 hover:text-gray-900">
-              View All Technical Details
+        <div className="mt-6 relative">
+          <details className="bg-gray-50 rounded-lg p-4 group">
+            <summary className="cursor-pointer text-sm font-medium text-gray-700 hover:text-gray-900 flex items-center justify-between">
+              <div className="flex items-center">
+                <FiInfo className="w-4 h-4 mr-2" />
+                View All Technical Details
+              </div>
+              {/* Dropdown arrow */}
+              <svg
+                className="w-4 h-4 ml-2 text-gray-600 transition-transform duration-300 group-open:rotate-180"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
             </summary>
             <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
               {Object.entries(ipData).map(([key, value]) => (
@@ -174,36 +182,22 @@ const MetricCard = ({ icon, title, value, secondaryValue, color, trend }) => {
       bg: "bg-indigo-50",
       border: "border-indigo-100",
       text: "text-indigo-700",
-      gradient: "from-indigo-500 to-purple-600",
     },
     green: {
       bg: "bg-green-50",
       border: "border-green-100",
       text: "text-green-700",
-      gradient: "from-green-500 to-emerald-600",
-    },
-    blue: {
-      bg: "bg-blue-50",
-      border: "border-blue-100",
-      text: "text-blue-700",
-      gradient: "from-blue-500 to-cyan-600",
-    },
-    purple: {
-      bg: "bg-purple-50",
-      border: "border-purple-100",
-      text: "text-purple-700",
-      gradient: "from-purple-500 to-violet-600",
     },
   };
 
   return (
     <div
-      className={`p-6 rounded-2xl border ${colorClasses[color].border} ${colorClasses[color].bg} backdrop-blur-sm transition-all duration-300 hover:scale-105 hover:shadow-lg`}
+      className={`p-6 rounded-2xl border ${colorClasses[color].border} ${colorClasses[color].bg} backdrop-blur-sm transition-all duration-300 hover:shadow-lg`}
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <div
-            className={`p-3 rounded-xl bg-gradient-to-r ${colorClasses[color].gradient} text-white shadow-lg`}
+            className={`p-3 rounded-xl bg-white border ${colorClasses[color].border} text-gray-700 shadow-lg`}
           >
             {icon}
           </div>
@@ -256,9 +250,9 @@ const PhotoModal = ({ photoUrl, onClose }) => {
   }, [photoUrl]);
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
-      <div className="bg-white rounded-3xl w-full max-w-2xl mx-auto flex flex-col max-h-[90vh] shadow-2xl transform animate-scaleIn">
-        <div className="flex justify-between items-center p-6 border-b border-gray-100 shrink-0">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-3xl w-full max-w-2xl mx-auto flex flex-col max-h-[90vh] shadow-2xl border border-gray-200">
+        <div className="flex justify-between items-center p-6 border-b border-gray-200 shrink-0">
           <div>
             <h3 className="text-xl font-bold text-gray-900">Visitor Photo</h3>
             <p className="text-sm text-gray-600 mt-1">
@@ -287,7 +281,7 @@ const PhotoModal = ({ photoUrl, onClose }) => {
         </div>
 
         <div className="flex-1 overflow-auto p-6">
-          <div className="flex items-center justify-center min-h-[300px] bg-gray-50 rounded-2xl">
+          <div className="flex items-center justify-center min-h-[300px] bg-gray-50 rounded-2xl border border-gray-200">
             {imgLoading && !imgError && (
               <div className="flex flex-col items-center justify-center space-y-4">
                 <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-200 border-t-indigo-500"></div>
@@ -307,8 +301,8 @@ const PhotoModal = ({ photoUrl, onClose }) => {
 
           {imgError && (
             <div className="text-center py-12">
-              <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CameraIcon className="w-10 h-10 text-red-500" />
+              <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-200">
+                <FiCamera className="w-10 h-10 text-red-500" />
               </div>
               <h4 className="text-lg font-semibold text-gray-900 mb-2">
                 Photo Unavailable
@@ -321,7 +315,7 @@ const PhotoModal = ({ photoUrl, onClose }) => {
           )}
         </div>
 
-        <div className="p-6 border-t border-gray-100 bg-gray-50/50 shrink-0 rounded-b-3xl">
+        <div className="p-6 border-t border-gray-200 bg-gray-50 shrink-0 rounded-b-3xl">
           <button
             onClick={onClose}
             className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-4 px-6 rounded-xl hover:from-indigo-700 hover:to-purple-700 active:scale-95 transition-all duration-200 font-semibold shadow-lg"
@@ -345,9 +339,9 @@ const LocationModal = ({ location, onClose }) => {
   }&layer=mapnik&marker=${latitude},${longitude}`;
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
-      <div className="bg-white rounded-3xl w-full max-w-6xl mx-auto flex flex-col max-h-[90vh] shadow-2xl transform animate-scaleIn">
-        <div className="flex justify-between items-center p-6 border-b border-gray-100 shrink-0">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-3xl w-full max-w-6xl mx-auto flex flex-col max-h-[90vh] shadow-2xl border border-gray-200">
+        <div className="flex justify-between items-center p-6 border-b border-gray-200 shrink-0">
           <div>
             <h3 className="text-xl font-bold text-gray-900">
               Visitor Location
@@ -382,7 +376,7 @@ const LocationModal = ({ location, onClose }) => {
             <div className="space-y-6">
               <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-2xl p-6 border border-blue-200">
                 <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                  <MapPinIcon className="w-5 h-5 mr-2 text-blue-600" />
+                  <FiMapPin className="w-5 h-5 mr-2 text-blue-600" />
                   Location Details
                 </h4>
                 <div className="space-y-4">
@@ -420,7 +414,7 @@ const LocationModal = ({ location, onClose }) => {
                 <div className="grid grid-cols-1 gap-3">
                   {[
                     {
-                      name: "OpenStreetMap",
+                      name: "Open Street Map",
                       url: `https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}#map=15/${latitude}/${longitude}`,
                       color: "bg-green-500",
                     },
@@ -428,11 +422,6 @@ const LocationModal = ({ location, onClose }) => {
                       name: "Google Maps",
                       url: `https://maps.google.com/?q=${latitude},${longitude}`,
                       color: "bg-blue-500",
-                    },
-                    {
-                      name: "Bing Maps",
-                      url: `https://www.bing.com/maps?cp=${latitude}~${longitude}&lvl=15`,
-                      color: "bg-orange-500",
                     },
                   ].map((link, index) => (
                     <a
@@ -471,7 +460,7 @@ const LocationModal = ({ location, onClose }) => {
           </div>
         </div>
 
-        <div className="p-6 border-t border-gray-100 bg-gray-50/50 shrink-0 rounded-b-3xl">
+        <div className="p-6 border-t border-gray-200 bg-gray-50 shrink-0 rounded-b-3xl">
           <button
             onClick={onClose}
             className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-4 px-6 rounded-xl hover:from-indigo-700 hover:to-purple-700 active:scale-95 transition-all duration-200 font-semibold shadow-lg"
@@ -487,9 +476,9 @@ const LocationModal = ({ location, onClose }) => {
 // Enhanced IP Modal
 const IPModal = ({ ip, onClose }) => {
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
-      <div className="bg-white rounded-3xl w-full max-w-6xl mx-auto flex flex-col max-h-[90vh] shadow-2xl transform animate-scaleIn">
-        <div className="flex justify-between items-center p-6 border-b border-gray-100 shrink-0">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-3xl w-full max-w-6xl mx-auto flex flex-col max-h-[90vh] shadow-2xl border border-gray-200">
+        <div className="flex justify-between items-center p-6 border-b border-gray-200 shrink-0">
           <div>
             <h3 className="text-xl font-bold text-gray-900">
               IP Address Analysis
@@ -524,7 +513,7 @@ const IPModal = ({ ip, onClose }) => {
           <IPApiDetails ip={ip} />
         </div>
 
-        <div className="p-6 border-t border-gray-100 bg-gray-50/50 shrink-0 rounded-b-3xl">
+        <div className="p-6 border-t border-gray-200 bg-gray-50 shrink-0 rounded-b-3xl">
           <button
             onClick={onClose}
             className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-4 px-6 rounded-xl hover:from-indigo-700 hover:to-purple-700 active:scale-95 transition-all duration-200 font-semibold shadow-lg"
@@ -536,11 +525,1206 @@ const IPModal = ({ ip, onClose }) => {
     </div>
   );
 };
+// CSV Download Modal
+const CSVDownloadModal = ({ links, onClose, visitLogs }) => {
+  const [selectedLinks, setSelectedLinks] = useState([]);
+  const [selectedIPs, setSelectedIPs] = useState([]);
+  const [selectedTimes, setSelectedTimes] = useState([]);
+  const [availableIPs, setAvailableIPs] = useState([]);
+  const [availableTimes, setAvailableTimes] = useState([]);
+  const [step, setStep] = useState(1); // 1: Links, 2: IPs, 3: Times
 
+  // Extract unique IPs and times from visitLogs
+  useEffect(() => {
+    if (visitLogs && visitLogs.length > 0) {
+      const uniqueIPs = [
+        ...new Set(visitLogs.map((visit) => visit.publicIp).filter(Boolean)),
+      ];
+
+      // Extract timestamps with proper formatting
+      const uniqueTimes = [
+        ...new Set(
+          visitLogs.map((visit) => {
+            const date = new Date(visit.timestamp);
+            return date.toISOString(); // Use full ISO string for uniqueness
+          })
+        ),
+      ];
+
+      setAvailableIPs(uniqueIPs);
+      setAvailableTimes(uniqueTimes.sort());
+    }
+  }, [visitLogs]);
+
+  // Update available IPs and times when links are selected
+  useEffect(() => {
+    if (selectedLinks.length > 0 && visitLogs) {
+      const filteredLogs = visitLogs.filter((visit) =>
+        selectedLinks.includes(visit.linkId)
+      );
+
+      const uniqueIPs = [
+        ...new Set(filteredLogs.map((visit) => visit.publicIp).filter(Boolean)),
+      ];
+
+      setAvailableIPs(uniqueIPs);
+
+      // Reset dependent selections when selectedLinks changes
+      setSelectedIPs([]);
+      setSelectedTimes([]);
+      setAvailableTimes([]);
+
+      setStep(2);
+    } else {
+      setAvailableIPs([]);
+      setSelectedIPs([]);
+      setAvailableTimes([]);
+      setSelectedTimes([]);
+      setStep(1);
+    }
+  }, [selectedLinks, visitLogs]);
+  useEffect(() => {
+    if (selectedIPs.length > 0) {
+      const filteredLogs = visitLogs.filter(
+        (visit) =>
+          selectedLinks.includes(visit.linkId) &&
+          selectedIPs.includes(visit.publicIp)
+      );
+      const uniqueTimes = [
+        ...new Set(
+          filteredLogs.map((visit) => {
+            const date = new Date(visit.timestamp);
+            return date.toISOString();
+          })
+        ),
+      ];
+      setAvailableTimes(uniqueTimes.sort());
+      setStep(3);
+
+      // FIX: Only clear selection, don't auto select all
+      setSelectedTimes([]); // <-- Only clear, user should select from shown times
+    }
+  }, [selectedIPs, selectedLinks, visitLogs]);
+
+  // Toggle selection for links
+  const toggleLinkSelection = (linkId) => {
+    setSelectedLinks((prev) =>
+      prev.includes(linkId)
+        ? prev.filter((id) => id !== linkId)
+        : [...prev, linkId]
+    );
+  };
+
+  // Toggle selection for IPs
+  const toggleIPSelection = (ip) => {
+    setSelectedIPs((prev) =>
+      prev.includes(ip) ? prev.filter((item) => item !== ip) : [...prev, ip]
+    );
+  };
+
+  // Toggle selection for times
+  const toggleTimeSelection = (time) => {
+    setSelectedTimes((prev) =>
+      prev.includes(time)
+        ? prev.filter((item) => item !== time)
+        : [...prev, time]
+    );
+  };
+
+  // Select all items in current step
+  const selectAll = (type) => {
+    if (type === "links") {
+      setSelectedLinks(availableLinks.map((link) => link.id));
+    } else if (type === "ips") {
+      setSelectedIPs([...availableIPs]);
+    } else if (type === "times") {
+      setSelectedTimes([...availableTimes]);
+    }
+  };
+
+  // Clear all items in current step
+  const clearAll = (type) => {
+    if (type === "links") {
+      setSelectedLinks([]);
+    } else if (type === "ips") {
+      setSelectedIPs([]);
+    } else if (type === "times") {
+      setSelectedTimes([]);
+    }
+  };
+
+  // Function to fetch ISP data for an IP
+  const fetchISPData = async (ip) => {
+    try {
+      const response = await fetch(`https://ipapi.co/${ip}/json/`);
+      const data = await response.json();
+      return data.org || data.isp || "Unknown ISP";
+    } catch (error) {
+      console.error(`Failed to fetch ISP data for IP ${ip}:`, error);
+      return "Unknown ISP";
+    }
+  };
+
+  const handleDownloadCSV = async () => {
+    if (selectedLinks.length === 0) {
+      alert("Please select at least one link");
+      return;
+    }
+
+    // Filter visit logs based on selections
+    let filteredLogs = visitLogs.filter((visit) =>
+      selectedLinks.includes(visit.linkId)
+    );
+
+    // Filter by IP if selected
+    if (selectedIPs.length > 0) {
+      filteredLogs = filteredLogs.filter((visit) =>
+        selectedIPs.includes(visit.publicIp)
+      );
+    }
+
+    // Filter by time if selected
+    if (selectedTimes.length > 0) {
+      filteredLogs = filteredLogs.filter((visit) => {
+        const visitTime = new Date(visit.timestamp).toISOString();
+        return selectedTimes.includes(visitTime);
+      });
+    }
+
+    // Generate CSV content
+    const headers = [
+      "Domain",
+      "Date",
+      "Day",
+      "Time",
+      "IP Address",
+      "Device",
+      "ISP Organization",
+    ];
+
+    // Create CSV rows with proper formatting
+    const csvRows = await Promise.all(
+      filteredLogs.map(async (visit) => {
+        const date = new Date(visit.timestamp);
+        const link = links.find((l) => l._id === visit.linkId);
+
+        // Use the actual URL without encoding - this will preserve Bengali characters
+        const domain = link
+          ? `"${link.domain}/${link.shortCode}"`
+          : '"Unknown"';
+
+        // Format device information - all in one column separated by commas
+        const deviceType = visit.device?.type || "Unknown";
+        const deviceOS = visit.device?.os || "Unknown";
+        const deviceBrowser = visit.device?.browser || "Unknown";
+        const deviceInfo = `${deviceType},${deviceOS},${deviceBrowser}`;
+
+        // Fetch ISP data
+        const ispOrganization = visit.publicIp
+          ? await fetchISPData(visit.publicIp)
+          : "Unknown ISP";
+
+        return [
+          domain, // Wrap in quotes to preserve special characters
+          date.toISOString().split("T")[0], // Date (YYYY-MM-DD)
+          date.toLocaleDateString("en-US", { weekday: "long" }), // Day
+          date.toLocaleTimeString("en-US", { hour12: false }), // Time (HH:MM:SS) - 24-hour format
+          visit.publicIp || "N/A", // IP Address
+          `"${deviceInfo}"`, // Device info as "Mobile,Android,Chrome" in one column with quotes
+          `"${ispOrganization}"`, // Wrap ISP in quotes as well
+        ].join(",");
+      })
+    );
+
+    // Add BOM (Byte Order Mark) for UTF-8 encoding to preserve special characters
+    const BOM = "\uFEFF";
+
+    // Combine headers and rows
+    const csvContent = BOM + [headers.join(","), ...csvRows].join("\n");
+
+    // Create and download file with explicit UTF-8 encoding
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `analytics-export-${
+      new Date().toISOString().split("T")[0]
+    }.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    onClose();
+  };
+
+  const resetSelections = () => {
+    setSelectedLinks([]);
+    setSelectedIPs([]);
+    setSelectedTimes([]);
+    setStep(1);
+  };
+
+  // Get all unique link IDs from visitLogs - show ALL links, not just those with visits
+  const availableLinks =
+    links?.map((link) => {
+      const visitCount =
+        visitLogs?.filter((v) => v.linkId === link._id).length || 0;
+      return {
+        id: link._id,
+        name: `${link.domain}/${link.shortCode}`,
+        domain: link.domain,
+        visitCount: visitCount,
+      };
+    }) || [];
+
+  return (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-3xl w-full max-w-2xl mx-auto flex flex-col max-h-[90vh] shadow-2xl border border-gray-200">
+        <div className="flex justify-between items-center p-6 border-b border-gray-200 shrink-0">
+          <div>
+            <h3 className="text-xl font-bold text-gray-900">Export CSV File</h3>
+            <p className="text-sm text-gray-600 mt-1">
+              Select filters to download analytics data
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 rounded-xl transition-colors duration-200 group"
+            aria-label="Close"
+          >
+            <svg
+              className="w-6 h-6 text-gray-500 group-hover:text-gray-700"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-auto p-6">
+          <div className="space-y-6">
+            {/* Progress Steps */}
+            <div className="flex justify-between items-center mb-8">
+              {[1, 2, 3].map((stepNum) => (
+                <div key={stepNum} className="flex items-center">
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
+                      step >= stepNum
+                        ? "bg-indigo-600 text-white"
+                        : "bg-gray-200 text-gray-500"
+                    }`}
+                  >
+                    {stepNum}
+                  </div>
+                  {stepNum < 3 && (
+                    <div
+                      className={`w-16 h-1 mx-2 ${
+                        step > stepNum ? "bg-indigo-600" : "bg-gray-200"
+                      }`}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Step 1: Link Selection */}
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <label className="block text-sm font-semibold text-gray-900">
+                  Select Links (Required)
+                </label>
+                <div className="space-x-2">
+                  <button
+                    onClick={() => selectAll("links")}
+                    className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+                  >
+                    Select All
+                  </button>
+                  <button
+                    onClick={() => clearAll("links")}
+                    className="text-xs text-gray-600 hover:text-gray-800 font-medium"
+                  >
+                    Clear All
+                  </button>
+                </div>
+              </div>
+
+              <div className="max-h-64 overflow-y-auto border border-gray-300 rounded-xl p-3 space-y-2">
+                {availableLinks.length > 0 ? (
+                  availableLinks.map((link) => (
+                    <div
+                      key={link.id}
+                      className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-all duration-200 ${
+                        selectedLinks.includes(link.id)
+                          ? "bg-indigo-50 border border-indigo-200"
+                          : "bg-gray-50 border border-gray-200 hover:bg-gray-100"
+                      }`}
+                      onClick={() => toggleLinkSelection(link.id)}
+                    >
+                      {/* Square checkbox */}
+                      <div
+                        className={`w-5 h-5 border-2 flex items-center justify-center transition-all duration-200 ${
+                          selectedLinks.includes(link.id)
+                            ? "bg-indigo-600 border-indigo-600"
+                            : "bg-white border-gray-400"
+                        }`}
+                        style={{ borderRadius: "4px" }}
+                      >
+                        {selectedLinks.includes(link.id) && (
+                          <svg
+                            className="w-3 h-3 text-white"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={3}
+                              d="M5 13l4 4L19 7"
+                            />
+                          </svg>
+                        )}
+                      </div>
+                      <span className="text-sm font-medium text-gray-900 flex-1">
+                        {link.name}
+                      </span>
+                      <span className="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">
+                        {link.visitCount} clicks
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    No links available
+                  </div>
+                )}
+              </div>
+              <p className="text-sm text-gray-500">
+                {selectedLinks.length} of {availableLinks.length} links selected
+              </p>
+            </div>
+
+            {/* Step 2: IP Selection */}
+            {step >= 2 && (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <label className="block text-sm font-semibold text-gray-900">
+                    Select IP Addresses (Optional)
+                  </label>
+                  <div className="space-x-2">
+                    <button
+                      onClick={() => selectAll("ips")}
+                      className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+                    >
+                      Select All
+                    </button>
+                    <button
+                      onClick={() => clearAll("ips")}
+                      className="text-xs text-gray-600 hover:text-gray-800 font-medium"
+                    >
+                      Clear All
+                    </button>
+                  </div>
+                </div>
+
+                <div className="max-h-64 overflow-y-auto border border-gray-300 rounded-xl p-3 space-y-2">
+                  {availableIPs.length > 0 ? (
+                    availableIPs.map((ip, index) => (
+                      <div
+                        key={index}
+                        className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-all duration-200 ${
+                          selectedIPs.includes(ip)
+                            ? "bg-indigo-50 border border-indigo-200"
+                            : "bg-gray-50 border border-gray-200 hover:bg-gray-100"
+                        }`}
+                        onClick={() => toggleIPSelection(ip)}
+                      >
+                        {/* Square checkbox */}
+                        <div
+                          className={`w-5 h-5 border-2 flex items-center justify-center transition-all duration-200 ${
+                            selectedIPs.includes(ip)
+                              ? "bg-indigo-600 border-indigo-600"
+                              : "bg-white border-gray-400"
+                          }`}
+                          style={{ borderRadius: "4px" }}
+                        >
+                          {selectedIPs.includes(ip) && (
+                            <svg
+                              className="w-3 h-3 text-white"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={3}
+                                d="M5 13l4 4L19 7"
+                              />
+                            </svg>
+                          )}
+                        </div>
+                        <span className="text-sm font-mono text-gray-900 flex-1">
+                          {ip}
+                        </span>
+                        <span className="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">
+                          {
+                            visitLogs.filter(
+                              (v) =>
+                                v.publicIp === ip &&
+                                selectedLinks.includes(v.linkId)
+                            ).length
+                          }{" "}
+                          visits
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      No IP addresses available for selected links
+                    </div>
+                  )}
+                </div>
+                <p className="text-sm text-gray-500">
+                  {selectedIPs.length > 0
+                    ? `${selectedIPs.length} of ${availableIPs.length} IPs selected`
+                    : `All ${availableIPs.length} IPs will be included`}
+                </p>
+              </div>
+            )}
+
+            {/* Step 3: Time Selection */}
+            {step >= 3 && (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <label className="block text-sm font-semibold text-gray-900">
+                    Select Times (Optional)
+                  </label>
+                  <div className="space-x-2">
+                    <button
+                      onClick={() => selectAll("times")}
+                      className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+                    >
+                      Select All
+                    </button>
+                    <button
+                      onClick={() => clearAll("times")}
+                      className="text-xs text-gray-600 hover:text-gray-800 font-medium"
+                    >
+                      Clear All
+                    </button>
+                  </div>
+                </div>
+
+                <div className="max-h-64 overflow-y-auto border border-gray-300 rounded-xl p-3 space-y-2">
+                  {availableTimes.length > 0 ? (
+                    availableTimes.map((time, index) => {
+                      const date = new Date(time);
+                      const formattedDate = date.toLocaleDateString("en-US");
+                      const formattedTime = date.toLocaleTimeString("en-US", {
+                        hour12: false,
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        second: "2-digit",
+                      });
+
+                      return (
+                        <div
+                          key={index}
+                          className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-all duration-200 ${
+                            selectedTimes.includes(time)
+                              ? "bg-indigo-50 border border-indigo-200"
+                              : "bg-gray-50 border border-gray-200 hover:bg-gray-100"
+                          }`}
+                          onClick={() => toggleTimeSelection(time)}
+                        >
+                          {/* Square checkbox */}
+                          <div
+                            className={`w-5 h-5 border-2 flex items-center justify-center transition-all duration-200 ${
+                              selectedTimes.includes(time)
+                                ? "bg-indigo-600 border-indigo-600"
+                                : "bg-white border-gray-400"
+                            }`}
+                            style={{ borderRadius: "4px" }}
+                          >
+                            {selectedTimes.includes(time) && (
+                              <svg
+                                className="w-3 h-3 text-white"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={3}
+                                  d="M5 13l4 4L19 7"
+                                />
+                              </svg>
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <div className="text-sm font-medium text-gray-900">
+                              {formattedDate}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {formattedTime}
+                            </div>
+                          </div>
+                          <span className="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">
+                            {
+                              visitLogs.filter((v) => {
+                                const visitTime = new Date(
+                                  v.timestamp
+                                ).toISOString();
+                                return (
+                                  visitTime === time &&
+                                  selectedLinks.includes(v.linkId)
+                                );
+                              }).length
+                            }{" "}
+                            visits
+                          </span>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      No times available for selected links
+                    </div>
+                  )}
+                </div>
+                <p className="text-sm text-gray-500">
+                  {selectedTimes.length > 0
+                    ? `${selectedTimes.length} of ${availableTimes.length} times selected`
+                    : `All ${availableTimes.length} times will be included`}
+                </p>
+              </div>
+            )}
+
+            {/* Preview Info */}
+            {selectedLinks.length > 0 && (
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                <h4 className="text-sm font-semibold text-blue-900 mb-2">
+                  Export Preview
+                </h4>
+                <p className="text-sm text-blue-700">
+                  {selectedLinks.length} link(s) selected •
+                  {selectedIPs.length > 0
+                    ? ` ${selectedIPs.length} IP(s)`
+                    : " All IPs"}{" "}
+                  •
+                  {selectedTimes.length > 0
+                    ? ` ${selectedTimes.length} time(s)`
+                    : " All times"}
+                </p>
+                <p className="text-xs text-blue-600 mt-1">
+                  Total records to export:{" "}
+                  {
+                    visitLogs.filter(
+                      (visit) =>
+                        selectedLinks.includes(visit.linkId) &&
+                        (selectedIPs.length === 0 ||
+                          selectedIPs.includes(visit.publicIp)) &&
+                        (selectedTimes.length === 0 ||
+                          selectedTimes.includes(
+                            new Date(visit.timestamp).toISOString()
+                          ))
+                    ).length
+                  }
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="p-6 border-t border-gray-200 bg-gray-50 shrink-0 rounded-b-3xl flex justify-between">
+          <button
+            onClick={resetSelections}
+            className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-all duration-200 font-medium"
+          >
+            Reset All
+          </button>
+          <div className="space-x-3">
+            <button
+              onClick={onClose}
+              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-all duration-200 font-medium"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleDownloadCSV}
+              disabled={selectedLinks.length === 0}
+              className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium shadow-lg"
+            >
+              Download CSV
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+// IPDR Request Modal Component
+const IPDRRequestModal = ({ links, onClose, visitLogs }) => {
+  const [selectedLinks, setSelectedLinks] = useState([]);
+  const [selectedIPs, setSelectedIPs] = useState([]);
+  const [availableIPs, setAvailableIPs] = useState([]);
+  const [ispData, setIspData] = useState({}); // Store ISP data for each IP
+  const [loadingISP, setLoadingISP] = useState(false);
+  const [step, setStep] = useState(1); // 1: Links, 2: IPs
+
+  // Function to fetch ISP data for an IP
+  const fetchISPData = async (ip) => {
+    try {
+      const response = await fetch(`https://ipapi.co/${ip}/json/`);
+      const data = await response.json();
+      return data.org || data.isp || "Unknown ISP";
+    } catch (error) {
+      console.error(`Failed to fetch ISP data for IP ${ip}:`, error);
+      return "Unknown ISP";
+    }
+  };
+
+  // Fetch ISP data for all available IPs
+  useEffect(() => {
+    const fetchAllISPData = async () => {
+      if (availableIPs.length > 0) {
+        setLoadingISP(true);
+        const ispPromises = availableIPs.map(async (ip) => {
+          const isp = await fetchISPData(ip);
+          return { ip, isp };
+        });
+
+        const results = await Promise.all(ispPromises);
+        const ispMap = {};
+        results.forEach(({ ip, isp }) => {
+          ispMap[ip] = isp;
+        });
+
+        setIspData(ispMap);
+        setLoadingISP(false);
+      }
+    };
+
+    fetchAllISPData();
+  }, [availableIPs]);
+
+  // Extract unique IPs from visitLogs
+  useEffect(() => {
+    if (visitLogs && visitLogs.length > 0) {
+      const uniqueIPs = [
+        ...new Set(visitLogs.map((visit) => visit.publicIp).filter(Boolean)),
+      ];
+      setAvailableIPs(uniqueIPs);
+    }
+  }, [visitLogs]);
+
+  // Update available IPs when links are selected
+  useEffect(() => {
+    if (selectedLinks.length > 0 && visitLogs) {
+      const filteredLogs = visitLogs.filter(
+        (visit) => selectedLinks.includes(visit.linkId) && visit.publicIp
+      );
+
+      // Use a Map to ensure unique IPs while preserving order
+      const ipMap = new Map();
+      filteredLogs.forEach((visit) => {
+        if (visit.publicIp && !ipMap.has(visit.publicIp)) {
+          ipMap.set(visit.publicIp, visit);
+        }
+      });
+
+      const uniqueIPs = Array.from(ipMap.keys());
+
+      setAvailableIPs(uniqueIPs);
+      setSelectedIPs([]);
+      setStep(2);
+    } else {
+      setAvailableIPs([]);
+      setSelectedIPs([]);
+      setStep(1);
+    }
+  }, [selectedLinks, visitLogs]);
+
+  // Toggle selection for links
+  const toggleLinkSelection = (linkId) => {
+    setSelectedLinks((prev) =>
+      prev.includes(linkId)
+        ? prev.filter((id) => id !== linkId)
+        : [...prev, linkId]
+    );
+  };
+
+  // Toggle selection for IPs
+  const toggleIPSelection = (ip) => {
+    setSelectedIPs((prev) =>
+      prev.includes(ip) ? prev.filter((item) => item !== ip) : [...prev, ip]
+    );
+  };
+
+  // Select all items in current step
+  const selectAll = (type) => {
+    if (type === "links") {
+      setSelectedLinks(availableLinks.map((link) => link.id));
+    } else if (type === "ips") {
+      setSelectedIPs([...availableIPs]);
+    }
+  };
+
+  // Clear all items in current step
+  const clearAll = (type) => {
+    if (type === "links") {
+      setSelectedLinks([]);
+    } else if (type === "ips") {
+      setSelectedIPs([]);
+    }
+  };
+
+  // Function to generate time range (2 minutes before and after)
+  const generateTimeRange = (time) => {
+    const date = new Date(time);
+
+    // Calculate 2 minutes before and after
+    const startTime = new Date(date.getTime() - 2 * 60 * 1000);
+    const endTime = new Date(date.getTime() + 2 * 60 * 1000);
+
+    // Format as HH:mm:ss
+    const formatTime = (dateObj) => {
+      return dateObj.toTimeString().split(" ")[0]; // Gets HH:mm:ss
+    };
+
+    return `${formatTime(startTime)} to ${formatTime(endTime)}`;
+  };
+
+  // Function to format date as YYYY-MM-DD
+  const formatDate = (time) => {
+    const date = new Date(time);
+    return date.toISOString().split("T")[0];
+  };
+
+  // Function to get ISP name for an IP
+  const getISPName = (ip) => {
+    const isp = ispData[ip];
+    if (!isp) return "Airtel"; // Default to Airtel if not loaded yet
+
+    // Extract just the ISP name from the organization field
+    if (isp.includes("Airtel")) return "Airtel";
+    if (isp.includes("BSNL")) return "BSNL";
+    if (isp.includes("Jio")) return "Jio";
+    if (isp.includes("Vodafone")) return "Vodafone";
+    if (isp.includes("ACT")) return "ACT";
+    if (isp.includes("Hathway")) return "Hathway";
+
+    // Return the first word or the whole string if no known ISP found
+    return isp.split(" ")[0] || "Airtel";
+  };
+
+  const handleComposeEmail = () => {
+    if (selectedLinks.length === 0) {
+      alert("Please select at least one link");
+      return;
+    }
+
+    // Get all IPs to use (selected IPs or all available IPs if none selected)
+    const ipsToUse = selectedIPs.length > 0 ? selectedIPs : availableIPs;
+
+    if (ipsToUse.length === 0) {
+      alert("No IP addresses available for the selected links");
+      return;
+    }
+
+    // Get all unique visit times for selected links and IPs
+    let filteredLogs = visitLogs.filter((visit) =>
+      selectedLinks.includes(visit.linkId)
+    );
+
+    // Filter by IP if selected
+    if (selectedIPs.length > 0) {
+      filteredLogs = filteredLogs.filter((visit) =>
+        selectedIPs.includes(visit.publicIp)
+      );
+    }
+
+    // Get unique IP-Time combinations to avoid duplicates
+    const uniqueCombinations = {};
+    filteredLogs.forEach((visit) => {
+      const ip = visit.publicIp;
+      const time = new Date(visit.timestamp).toISOString();
+      const key = `${ip}-${time}`;
+
+      if (!uniqueCombinations[key]) {
+        uniqueCombinations[key] = {
+          ip,
+          time,
+          date: formatDate(time),
+          timeRange: generateTimeRange(time),
+        };
+      }
+    });
+
+    const uniqueEntries = Object.values(uniqueCombinations);
+
+    if (uniqueEntries.length === 0) {
+      alert("No visit times available for the selected links and IPs");
+      return;
+    }
+
+    // Create email content with proper formatting
+    const emailSubject = "Requesting for ipdr/iplog";
+
+    let emailBody = "Dear Sir,\r\n\r\n";
+    emailBody +=
+      "Provide please IPDR mentioned below target IP within date range.\r\n\r\n";
+    emailBody +=
+      "SL #   Operator/ISP         IP Address          Date               Time (BST)\r\n\r\n";
+
+    let entryCounter = 1;
+
+    // Create one entry per unique IP-Time combination
+    uniqueEntries.forEach((entry) => {
+      const slNo = entryCounter.toString().padEnd(2, " ");
+      const isp = getISPName(entry.ip).padEnd(15, " ");
+      const ipFormatted = entry.ip.padEnd(18, " ");
+      const dateFormatted = entry.date.padEnd(18, " ");
+
+      emailBody += `${slNo}.         ${isp} ${ipFormatted} ${dateFormatted} ${entry.timeRange}\r\n`;
+      entryCounter++;
+    });
+
+    emailBody += "\r\nInvestigation Officer:\r\n";
+    emailBody += "Mob:\r\n\r\n";
+    emailBody += "Regards:\r\n";
+    emailBody += "Name\r\n";
+    emailBody += "BP-\r\n";
+    emailBody += "Designation\r\n";
+    emailBody += "Mob:\r\n";
+    emailBody += "Sender:";
+
+    // Create mailto link with proper encoding
+    const mailtoLink = `mailto:?subject=${encodeURIComponent(
+      emailSubject
+    )}&body=${encodeURIComponent(emailBody)}`;
+
+    // Open email client
+    window.open(mailtoLink, "_blank");
+
+    onClose();
+  };
+
+  const resetSelections = () => {
+    setSelectedLinks([]);
+    setSelectedIPs([]);
+    setStep(1);
+  };
+
+  // Get all unique link IDs from visitLogs - show ALL links, not just those with visits
+  const availableLinks =
+    links?.map((link) => {
+      const visitCount =
+        visitLogs?.filter((v) => v.linkId === link._id).length || 0;
+      return {
+        id: link._id,
+        name: `${link.domain}/${link.shortCode}`,
+        domain: link.domain,
+        visitCount: visitCount,
+      };
+    }) || [];
+
+  return (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-3xl w-full max-w-2xl mx-auto flex flex-col max-h-[90vh] shadow-2xl border border-gray-200">
+        <div className="flex justify-between items-center p-6 border-b border-gray-200 shrink-0">
+          <div>
+            <h3 className="text-xl font-bold text-gray-900">IPDR Request</h3>
+            <p className="text-sm text-gray-600 mt-1">
+              Select filters to generate IPDR request email
+              {loadingISP && " - Loading ISP data..."}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 rounded-xl transition-colors duration-200 group"
+            aria-label="Close"
+          >
+            <svg
+              className="w-6 h-6 text-gray-500 group-hover:text-gray-700"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-auto p-6">
+          <div className="space-y-6">
+            {/* Progress Steps */}
+            <div className="flex justify-between items-center mb-8">
+              {[1, 2].map((stepNum) => (
+                <div key={stepNum} className="flex items-center">
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
+                      step >= stepNum
+                        ? "bg-indigo-600 text-white"
+                        : "bg-gray-200 text-gray-500"
+                    }`}
+                  >
+                    {stepNum}
+                  </div>
+                  {stepNum < 2 && (
+                    <div
+                      className={`w-16 h-1 mx-2 ${
+                        step > stepNum ? "bg-indigo-600" : "bg-gray-200"
+                      }`}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Step 1: Link Selection */}
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <label className="block text-sm font-semibold text-gray-900">
+                  Select Links (Required)
+                </label>
+                <div className="space-x-2">
+                  <button
+                    onClick={() => selectAll("links")}
+                    className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+                  >
+                    Select All
+                  </button>
+                  <button
+                    onClick={() => clearAll("links")}
+                    className="text-xs text-gray-600 hover:text-gray-800 font-medium"
+                  >
+                    Clear All
+                  </button>
+                </div>
+              </div>
+
+              <div className="max-h-64 overflow-y-auto border border-gray-300 rounded-xl p-3 space-y-2">
+                {availableLinks.length > 0 ? (
+                  availableLinks.map((link) => (
+                    <div
+                      key={link.id}
+                      className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-all duration-200 ${
+                        selectedLinks.includes(link.id)
+                          ? "bg-indigo-50 border border-indigo-200"
+                          : "bg-gray-50 border border-gray-200 hover:bg-gray-100"
+                      }`}
+                      onClick={() => toggleLinkSelection(link.id)}
+                    >
+                      {/* Square checkbox */}
+                      <div
+                        className={`w-5 h-5 border-2 flex items-center justify-center transition-all duration-200 ${
+                          selectedLinks.includes(link.id)
+                            ? "bg-indigo-600 border-indigo-600"
+                            : "bg-white border-gray-400"
+                        }`}
+                        style={{ borderRadius: "4px" }}
+                      >
+                        {selectedLinks.includes(link.id) && (
+                          <svg
+                            className="w-3 h-3 text-white"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={3}
+                              d="M5 13l4 4L19 7"
+                            />
+                          </svg>
+                        )}
+                      </div>
+                      <span className="text-sm font-medium text-gray-900 flex-1">
+                        {link.name}
+                      </span>
+                      <span className="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">
+                        {link.visitCount} clicks
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    No links available
+                  </div>
+                )}
+              </div>
+              <p className="text-sm text-gray-500">
+                {selectedLinks.length} of {availableLinks.length} links selected
+              </p>
+            </div>
+
+            {/* Step 2: IP Selection */}
+            {step >= 2 && (
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <label className="block text-sm font-semibold text-gray-900">
+                    Select IP Addresses (Optional)
+                  </label>
+                  <div className="space-x-2">
+                    <button
+                      onClick={() => selectAll("ips")}
+                      className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+                    >
+                      Select All
+                    </button>
+                    <button
+                      onClick={() => clearAll("ips")}
+                      className="text-xs text-gray-600 hover:text-gray-800 font-medium"
+                    >
+                      Clear All
+                    </button>
+                  </div>
+                </div>
+
+                <div className="max-h-64 overflow-y-auto border border-gray-300 rounded-xl p-3 space-y-2">
+                  {availableIPs.length > 0 ? (
+                    availableIPs.map((ip, index) => (
+                      <div
+                        key={index}
+                        className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-all duration-200 ${
+                          selectedIPs.includes(ip)
+                            ? "bg-indigo-50 border border-indigo-200"
+                            : "bg-gray-50 border border-gray-200 hover:bg-gray-100"
+                        }`}
+                        onClick={() => toggleIPSelection(ip)}
+                      >
+                        {/* Square checkbox */}
+                        <div
+                          className={`w-5 h-5 border-2 flex items-center justify-center transition-all duration-200 ${
+                            selectedIPs.includes(ip)
+                              ? "bg-indigo-600 border-indigo-600"
+                              : "bg-white border-gray-400"
+                          }`}
+                          style={{ borderRadius: "4px" }}
+                        >
+                          {selectedIPs.includes(ip) && (
+                            <svg
+                              className="w-3 h-3 text-white"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={3}
+                                d="M5 13l4 4L19 7"
+                              />
+                            </svg>
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <span className="text-sm font-mono text-gray-900">
+                            {ip}
+                          </span>
+                          {ispData[ip] && (
+                            <div className="text-xs text-gray-500 mt-1">
+                              ISP: {getISPName(ip)}
+                            </div>
+                          )}
+                        </div>
+                        <span className="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">
+                          {
+                            visitLogs.filter(
+                              (v) =>
+                                v.publicIp === ip &&
+                                selectedLinks.includes(v.linkId)
+                            ).length
+                          }{" "}
+                          visits
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      No IP addresses available for selected links
+                    </div>
+                  )}
+                </div>
+                <p className="text-sm text-gray-500">
+                  {selectedIPs.length > 0
+                    ? `${selectedIPs.length} of ${availableIPs.length} IPs selected`
+                    : `All ${availableIPs.length} IPs will be included`}
+                </p>
+              </div>
+            )}
+
+            {/* Preview Info */}
+            {selectedLinks.length > 0 && (
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                <h4 className="text-sm font-semibold text-blue-900 mb-2">
+                  IPDR Request Preview
+                </h4>
+                <p className="text-sm text-blue-700">
+                  {selectedLinks.length} link(s) selected •
+                  {selectedIPs.length > 0
+                    ? ` ${selectedIPs.length} IP(s)`
+                    : " All IPs"}
+                </p>
+                <p className="text-xs text-blue-600 mt-1">
+                  All available visit times will be automatically included with
+                  2-minute ranges
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="p-6 border-t border-gray-200 bg-gray-50 shrink-0 rounded-b-3xl flex justify-between">
+          <button
+            onClick={resetSelections}
+            className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-all duration-200 font-medium"
+          >
+            Reset All
+          </button>
+          <div className="space-x-3">
+            <button
+              onClick={onClose}
+              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-all duration-200 font-medium"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleComposeEmail}
+              disabled={selectedLinks.length === 0 || loadingISP}
+              className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium shadow-lg"
+            >
+              {loadingISP ? "Loading ISP..." : "Compose Email"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 // Main Analytics Component
 const Analytics = ({ stats, links }) => {
   const [selectedLinkId, setSelectedLinkId] = useState(null);
   const [visitLogs, setVisitLogs] = useState([]);
+  const [allVisitLogs, setAllVisitLogs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [selectedIp, setSelectedIp] = useState(null);
@@ -549,54 +1733,25 @@ const Analytics = ({ stats, links }) => {
   const [showPhotoModal, setShowPhotoModal] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [showLocationModal, setShowLocationModal] = useState(false);
-  const [autoRefresh, setAutoRefresh] = useState(true);
-
-  // Auto-refresh data every 30 seconds
+  const [refreshing, setRefreshing] = useState(false);
+  const [showCSVModal, setShowCSVModal] = useState(false);
+  const [loadingAllLogs, setLoadingAllLogs] = useState(false);
+  const [showIPDRModal, setShowIPDRModal] = useState(false);
   useEffect(() => {
-    if (!autoRefresh) return;
+    if (links && links.length > 0) {
+      fetchAllVisitLogs();
+    }
+  }, [links]);
 
-    const interval = setInterval(() => {
-      if (selectedLinkId) {
-        fetchVisitLogs();
-      }
-    }, 30000);
-
-    return () => clearInterval(interval);
-  }, [autoRefresh, selectedLinkId]);
-
-  // Format data for charts
-  const linkData =
-    links?.map((link) => ({
-      name: link.shortCode,
-      fullUrl: `${link.domain}/${link.shortCode}`,
-      clicks: stats?.clicksByLink?.[link._id] || 0,
-      id: link._id,
-    })) || [];
-
-  const timeSeriesData =
-    stats?.timeSeries?.map((item) => ({
-      date: format(new Date(item.date), "MMM dd"),
-      fullDate: format(new Date(item.date), "MMM dd, yyyy"),
-      clicks: item.count,
-    })) || [];
-
-  // Enhanced device data with icons
-  const deviceData = [
-    { name: "Desktop", value: stats?.devices?.desktop || 0, icon: "💻" },
-    { name: "Mobile", value: stats?.devices?.mobile || 0, icon: "📱" },
-    { name: "Tablet", value: stats?.devices?.tablet || 0, icon: "📟" },
-    { name: "Other", value: stats?.devices?.other || 0, icon: "🔍" },
-  ].filter((item) => item.value > 0);
-
-  const fetchVisitLogs = async () => {
-    if (!selectedLinkId) return;
+  const fetchVisitLogs = async (linkId) => {
+    if (!linkId) return;
 
     setLoading(true);
     setError(null);
 
     try {
       const res = await axios.get(
-        `https://api.cleanpc.xyz/api/stats/visits/${selectedLinkId}`,
+        `https://api.cleanpc.xyz/api/stats/visits/${linkId}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -612,8 +1767,61 @@ const Analytics = ({ stats, links }) => {
     }
   };
 
+  const fetchAllVisitLogs = async () => {
+    setLoadingAllLogs(true);
+    try {
+      const allLogs = [];
+
+      if (links && links.length > 0) {
+        for (const link of links) {
+          try {
+            const res = await axios.get(
+              `https://api.cleanpc.xyz/api/stats/visits/${link._id}`,
+              {
+                headers: {
+                  Authorization: `Bearer ${localStorage.getItem("token")}`,
+                },
+              }
+            );
+            const linkLogs = res.data.docs || res.data;
+            if (linkLogs && linkLogs.length > 0) {
+              linkLogs.forEach((log) => {
+                log.linkId = link._id;
+              });
+              allLogs.push(...linkLogs);
+            }
+          } catch (err) {
+            console.error(`Failed to load visits for link ${link._id}`, err);
+          }
+        }
+      }
+
+      setAllVisitLogs(allLogs);
+      return allLogs;
+    } catch (err) {
+      console.error("Failed to load all visit logs", err);
+      return [];
+    } finally {
+      setLoadingAllLogs(false);
+    }
+  };
+
+  // Handle CSV modal open - use pre-fetched data
+  const handleCSVModalOpen = () => {
+    setShowCSVModal(true);
+  };
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    setTimeout(() => {
+      window.location.reload();
+    }, 500);
+  };
+
   useEffect(() => {
-    fetchVisitLogs();
+    if (selectedLinkId) {
+      fetchVisitLogs(selectedLinkId);
+    }
   }, [selectedLinkId]);
 
   const handleCheckIp = (ipAddress) => {
@@ -633,23 +1841,6 @@ const Analytics = ({ stats, links }) => {
     setShowLocationModal(true);
   };
 
-  // Enhanced Custom Tooltip for charts
-  const CustomTooltip = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-white/95 backdrop-blur-sm border border-gray-200 rounded-xl p-4 shadow-2xl">
-          <p className="font-semibold text-gray-900">{label}</p>
-          {payload.map((entry, index) => (
-            <p key={index} className="text-sm" style={{ color: entry.color }}>
-              {entry.name}: <span className="font-semibold">{entry.value}</span>
-            </p>
-          ))}
-        </div>
-      );
-    }
-    return null;
-  };
-
   if (!stats) {
     return (
       <div className="flex flex-col items-center justify-center h-96 space-y-4">
@@ -660,36 +1851,57 @@ const Analytics = ({ stats, links }) => {
   }
 
   return (
-    <div className="space-y-8 p-4">
-      {/* Auto-refresh Toggle */}
-      <div className="flex justify-end">
-        <label className="flex items-center space-x-3 bg-white/80 backdrop-blur-sm rounded-2xl p-4 border border-gray-200 shadow-sm">
-          <span className="text-sm font-medium text-gray-700">
-            Auto-refresh
+    <div className="space-y-8">
+      {/* Control Buttons */}
+      <div className="flex justify-end items-center space-x-4">
+        <button
+          onClick={() => setShowIPDRModal(true)}
+          disabled={loadingAllLogs || !links || links.length === 0}
+          className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-2xl px-6 py-4 border border-blue-200 shadow-sm hover:from-blue-700 hover:to-cyan-700 transition-all duration-200 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <FiFileText className="w-5 h-5" />
+          <span className="text-sm font-medium">
+            {loadingAllLogs ? "Loading..." : "IPDR Request"}
           </span>
-          <div className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              checked={autoRefresh}
-              onChange={(e) => setAutoRefresh(e.target.checked)}
-              className="sr-only peer"
-            />
-            <div className="w-11 h-6 bg-gray-200 peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-          </div>
-        </label>
+        </button>
+        <button
+          onClick={handleCSVModalOpen}
+          disabled={loadingAllLogs || !links || links.length === 0}
+          className="flex items-center space-x-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-2xl px-6 py-4 border border-green-200 shadow-sm hover:from-green-700 hover:to-emerald-700 transition-all duration-200 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <FiDownload className="w-5 h-5" />
+          <span className="text-sm font-medium">
+            {loadingAllLogs ? "Loading..." : "CSV File"}
+          </span>
+        </button>
+
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="flex items-center space-x-2 bg-white rounded-2xl p-4 border border-gray-200 shadow-sm hover:bg-gray-50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <FiRefreshCw
+            className={`w-5 h-5 text-gray-600 ${
+              refreshing ? "animate-spin" : ""
+            }`}
+          />
+          <span className="text-sm font-medium text-gray-700">
+            {refreshing ? "Refreshing..." : "Refresh Data"}
+          </span>
+        </button>
       </div>
 
       {/* Summary Dashboard */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
         <MetricCard
-          icon={<CursorArrowRaysIcon className="h-6 w-6" />}
+          icon={<FiMousePointer className="h-6 w-6" />}
           title="Total Clicks"
           value={stats?.totalClicks || 0}
           color="indigo"
           trend={12}
         />
         <MetricCard
-          icon={<UsersIcon className="h-6 w-6" />}
+          icon={<FiUsers className="h-6 w-6" />}
           title="Unique Visitors"
           value={stats?.uniqueVisitors || 0}
           color="green"
@@ -697,113 +1909,9 @@ const Analytics = ({ stats, links }) => {
         />
       </div>
 
-      {/* Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Clicks Over Time */}
-        {timeSeriesData.length > 0 && (
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 shadow-sm">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                <ChartBarIcon className="w-5 h-5 mr-2 text-indigo-600" />
-                Clicks Over Time
-              </h3>
-              <CalendarIcon className="w-5 h-5 text-gray-400" />
-            </div>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={timeSeriesData}>
-                  <defs>
-                    <linearGradient
-                      id="colorClicks"
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="1"
-                    >
-                      <stop offset="5%" stopColor="#6366F1" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#6366F1" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    vertical={false}
-                    stroke="#f3f4f6"
-                  />
-                  <XAxis
-                    dataKey="date"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: "#6b7280", fontSize: 12 }}
-                  />
-                  <YAxis
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: "#6b7280", fontSize: 12 }}
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Area
-                    type="monotone"
-                    dataKey="clicks"
-                    stroke="#6366F1"
-                    strokeWidth={3}
-                    fillOpacity={1}
-                    fill="url(#colorClicks)"
-                    name="Clicks"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        )}
-
-        {/* Device Distribution */}
-        {deviceData.length > 0 && (
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 shadow-sm">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                <DevicePhoneMobileIcon className="w-5 h-5 mr-2 text-green-600" />
-                Device Distribution
-              </h3>
-              <span className="text-sm text-gray-500">
-                {deviceData.reduce((sum, item) => sum + item.value, 0)} total
-              </span>
-            </div>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={deviceData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) =>
-                      `${name} (${(percent * 100).toFixed(0)}%)`
-                    }
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {deviceData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={COLORS[index % COLORS.length]}
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    formatter={(value) => [`${value} visits`, "Visits"]}
-                  />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        )}
-      </div>
-
       {/* Visit Logs Section */}
       <div className="space-y-6">
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 shadow-sm">
+        <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
             <div className="flex-1">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -814,27 +1922,62 @@ const Analytics = ({ stats, links }) => {
                 tracking data
               </p>
             </div>
-            <div className="w-full lg:w-64">
+            <div className="relative w-full max-w-xs mx-auto">
               <select
-                className="w-full border border-gray-300 rounded-xl shadow-sm py-3 px-4 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-200 bg-white"
+                className="
+                  w-full bg-gradient-to-r from-white via-gray-50 to-gray-100
+                  border border-gray-200 rounded-2xl px-4 py-2.5 pr-10 text-sm text-gray-900
+                  focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 shadow-md
+                  transition-all duration-200
+                  appearance-none
+                  outline-none
+                  hover:shadow-lg
+                  cursor-pointer
+                  truncate
+                "
                 onChange={(e) => setSelectedLinkId(e.target.value)}
                 value={selectedLinkId || ""}
+                style={{ minWidth: "170px" }}
               >
-                <option value="">Select Link to Analyze</option>
+                <option value="" className="text-gray-400">
+                  Select Link to Analyze
+                </option>
                 {links?.map((link) => (
-                  <option key={link._id} value={link._id}>
-                    {link.domain}/{link.shortCode} (
-                    {stats?.clicksByLink?.[link._id] || 0} clicks)
+                  <option
+                    key={link._id}
+                    value={link._id}
+                    className="text-gray-700 truncate"
+                  >
+                    {link.domain}/
+                    {link.shortCode.length > 20
+                      ? link.shortCode.substring(0, 20) + "..."
+                      : link.shortCode}{" "}
+                    ({stats?.clicksByLink?.[link._id] || 0} clicks)
                   </option>
                 ))}
               </select>
+              <div className="pointer-events-none absolute right-3 top-1/2 transform -translate-y-1/2">
+                <svg
+                  className="w-5 h-5 text-indigo-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Loading State */}
         {loading && (
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 border border-gray-200 shadow-sm">
+          <div className="bg-white rounded-2xl p-8 border border-gray-200 shadow-sm">
             <div className="flex flex-col items-center justify-center space-y-4">
               <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-200 border-t-indigo-500"></div>
               <p className="text-gray-600 font-medium">Loading visit logs...</p>
@@ -851,19 +1994,7 @@ const Analytics = ({ stats, links }) => {
             <div className="flex items-start space-x-4">
               <div className="flex-shrink-0">
                 <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                  <svg
-                    className="w-6 h-6 text-red-500"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
-                    />
-                  </svg>
+                  <FiInfo className="w-6 h-6 text-red-500" />
                 </div>
               </div>
               <div>
@@ -872,7 +2003,7 @@ const Analytics = ({ stats, links }) => {
                 </h4>
                 <p className="text-red-700">{error}</p>
                 <button
-                  onClick={fetchVisitLogs}
+                  onClick={() => fetchVisitLogs(selectedLinkId)}
                   className="mt-3 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors duration-200"
                 >
                   Try Again
@@ -884,7 +2015,7 @@ const Analytics = ({ stats, links }) => {
 
         {/* Visit Logs Table */}
         {selectedLinkId && visitLogs.length > 0 && !loading && (
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="p-6 border-b border-gray-200">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
@@ -896,8 +2027,8 @@ const Analytics = ({ stats, links }) => {
                   </p>
                 </div>
                 <div className="flex items-center space-x-2 text-sm text-gray-500">
-                  <ClockIcon className="w-4 h-4" />
-                  <span>Auto-refresh: {autoRefresh ? "On" : "Off"}</span>
+                  <FiClock className="w-4 h-4" />
+                  <span>Last refreshed: {new Date().toLocaleTimeString()}</span>
                 </div>
               </div>
             </div>
@@ -927,7 +2058,7 @@ const Analytics = ({ stats, links }) => {
                   {visitLogs.map((visit) => (
                     <tr
                       key={visit._id}
-                      className="hover:bg-gray-50/80 transition-colors duration-150"
+                      className="hover:bg-gray-50 transition-colors duration-150"
                     >
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">
@@ -958,12 +2089,14 @@ const Analytics = ({ stats, links }) => {
                         <div className="flex space-x-2">
                           {visit.hasPhoto && (
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
-                              📸 Photo
+                              <FiCamera className="w-3 h-3 mr-1" />
+                              Photo
                             </span>
                           )}
                           {visit.hasLocation && (
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
-                              📍 Location
+                              <FiMapPin className="w-3 h-3 mr-1" />
+                              Location
                             </span>
                           )}
                           {!visit.hasPhoto && !visit.hasLocation && (
@@ -979,7 +2112,7 @@ const Analytics = ({ stats, links }) => {
                             onClick={() => handleCheckIp(visit.publicIp)}
                             className="inline-flex items-center px-3 py-2 border border-transparent text-xs font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-sm hover:shadow-md"
                           >
-                            <EyeIcon className="h-3 w-3 mr-1" />
+                            <FiEye className="h-3 w-3 mr-1" />
                             Check IP
                           </button>
                           {visit.hasPhoto && (
@@ -987,7 +2120,7 @@ const Analytics = ({ stats, links }) => {
                               onClick={() => handleViewPhoto(visit.photo)}
                               className="inline-flex items-center px-3 py-2 border border-transparent text-xs font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200 shadow-sm hover:shadow-md"
                             >
-                              <CameraIcon className="h-3 w-3 mr-1" />
+                              <FiCamera className="h-3 w-3 mr-1" />
                               View Photo
                             </button>
                           )}
@@ -996,7 +2129,7 @@ const Analytics = ({ stats, links }) => {
                               onClick={() => handleViewLocation(visit.location)}
                               className="inline-flex items-center px-3 py-2 border border-transparent text-xs font-medium rounded-lg text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all duration-200 shadow-sm hover:shadow-md"
                             >
-                              <MapPinIcon className="h-3 w-3 mr-1" />
+                              <FiMapPin className="h-3 w-3 mr-1" />
                               See Location
                             </button>
                           )}
@@ -1010,49 +2143,7 @@ const Analytics = ({ stats, links }) => {
           </div>
         )}
       </div>
-      {/* Link Performance */}
-      {linkData.length > 0 && (
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 shadow-sm">
-          <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center">
-            <LinkIcon className="w-5 h-5 mr-2 text-blue-600" />
-            Link Performance
-          </h3>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={linkData}
-                layout="vertical"
-                margin={{ left: 100, right: 20 }}
-              >
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  horizontal={true}
-                  stroke="#f3f4f6"
-                />
-                <XAxis type="number" axisLine={false} tickLine={false} />
-                <YAxis
-                  type="category"
-                  dataKey="name"
-                  width={90}
-                  tick={{ fontSize: 12, fill: "#6b7280" }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <Tooltip
-                  formatter={(value) => [`${value} clicks`, "Clicks"]}
-                  labelFormatter={(value) => `Short Code: ${value}`}
-                />
-                <Bar
-                  dataKey="clicks"
-                  fill="#6366F1"
-                  name="Clicks"
-                  radius={[0, 4, 4, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      )}
+
       {/* Modals */}
       {showIpModal && selectedIp && (
         <IPModal ip={selectedIp} onClose={() => setShowIpModal(false)} />
@@ -1067,6 +2158,21 @@ const Analytics = ({ stats, links }) => {
         <LocationModal
           location={selectedLocation}
           onClose={() => setShowLocationModal(false)}
+        />
+      )}
+      {showIPDRModal && (
+        <IPDRRequestModal
+          links={links}
+          visitLogs={allVisitLogs}
+          onClose={() => setShowIPDRModal(false)}
+        />
+      )}
+      {/* CSV Download Modal */}
+      {showCSVModal && (
+        <CSVDownloadModal
+          links={links}
+          visitLogs={allVisitLogs} // Pass all visit logs, not just current ones
+          onClose={() => setShowCSVModal(false)}
         />
       )}
     </div>

@@ -21,7 +21,15 @@ import { toast } from "react-hot-toast";
 
 // Memoized content components to prevent unnecessary re-renders
 const TabContent = React.memo(
-  ({ activeTab, links, setLinks, stats, user, onLinkCreated }) => {
+  ({
+    activeTab,
+    links,
+    setLinks,
+    stats,
+    user,
+    onLinkCreated,
+    onRefreshAnalytics,
+  }) => {
     switch (activeTab) {
       case "links":
         return (
@@ -32,7 +40,13 @@ const TabContent = React.memo(
           />
         );
       case "analytics":
-        return <Analytics stats={stats} links={links} />;
+        return (
+          <Analytics
+            stats={stats}
+            links={links}
+            onRefresh={onRefreshAnalytics}
+          />
+        );
       case "settings":
         return <Settings user={user} />;
       default:
@@ -86,8 +100,11 @@ const Dashboard = () => {
 
   // Update localStorage whenever activeTab changes
   useEffect(() => {
-    localStorage.setItem("dashboardActiveTab", activeTab);
-  }, [activeTab]);
+    const savedTab = localStorage.getItem("dashboardActiveTab");
+    if (savedTab) {
+      setActiveTab(savedTab);
+    }
+  }, []);
 
   const fetchData = async () => {
     try {
@@ -113,13 +130,16 @@ const Dashboard = () => {
       fetchData();
     }
   }, [user, refreshKey]);
-
+  const handleRefreshAnalytics = () => {
+    setRefreshKey((prev) => prev + 1);
+  };
   const handleLinkCreated = () => {
     setRefreshKey((prev) => prev + 1);
   };
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
+    localStorage.setItem("dashboardActiveTab", tab);
     if (isMobile) {
       setIsMobileOpen(false);
     }
@@ -442,7 +462,7 @@ const Dashboard = () => {
                 whileHover={sidebarOpen ? { scale: 1.005 } : {}}
               >
                 <div className="w-10 h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold shadow-md">
-                  {user?.username?.charAt(0)?.toUpperCase() || "U"}
+                  {user?.name?.charAt(0)?.toUpperCase() || "U"}
                 </div>
 
                 {sidebarOpen && (
@@ -453,7 +473,7 @@ const Dashboard = () => {
                   >
                     <div className="flex items-center justify-between">
                       <p className="text-sm font-[700] text-gray-900 truncate">
-                        {user?.username || "User"}
+                        {user?.name || "User"}
                       </p>
                       <div className="flex gap-1">
                         <motion.button
@@ -523,7 +543,7 @@ const Dashboard = () => {
           </div>
 
           {/* Rendered Content */}
-          <div className="p-6">
+          <div className="p-4">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeTab}
@@ -539,6 +559,7 @@ const Dashboard = () => {
                   stats={stats}
                   user={user}
                   onLinkCreated={handleLinkCreated}
+                  onRefreshAnalytics={handleRefreshAnalytics}
                 />
               </motion.div>
             </AnimatePresence>

