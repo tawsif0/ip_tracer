@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useState } from "react";
 import axios from "axios";
@@ -1175,13 +1176,19 @@ const CSVDownloadModal = ({ links, onClose, visitLogs }) => {
   );
 };
 // IPDR Request Modal Component
+// IPDR Request Modal Component
 const IPDRRequestModal = ({ links, onClose, visitLogs }) => {
   const [selectedLinks, setSelectedLinks] = useState([]);
   const [selectedIPs, setSelectedIPs] = useState([]);
+  const [selectedTimes, setSelectedTimes] = useState([]);
   const [availableIPs, setAvailableIPs] = useState([]);
-  const [ispData, setIspData] = useState({}); // Store ISP data for each IP
+  const [availableTimes, setAvailableTimes] = useState([]);
+  const [ispData, setIspData] = useState({});
   const [loadingISP, setLoadingISP] = useState(false);
-  const [step, setStep] = useState(1); // 1: Links, 2: IPs
+  const [step, setStep] = useState(1); // 1: Links, 2: IPs, 3: Times
+  const [showEditTable, setShowEditTable] = useState(false);
+  const [emailData, setEmailData] = useState([]);
+  const [isEditing, setIsEditing] = useState(false);
 
   // Function to fetch ISP data for an IP
   const fetchISPData = async (ip) => {
@@ -1219,17 +1226,7 @@ const IPDRRequestModal = ({ links, onClose, visitLogs }) => {
     fetchAllISPData();
   }, [availableIPs]);
 
-  // Extract unique IPs from visitLogs
-  useEffect(() => {
-    if (visitLogs && visitLogs.length > 0) {
-      const uniqueIPs = [
-        ...new Set(visitLogs.map((visit) => visit.publicIp).filter(Boolean)),
-      ];
-      setAvailableIPs(uniqueIPs);
-    }
-  }, [visitLogs]);
-
-  // Update available IPs when links are selected
+  // Extract unique IPs from visitLogs based on selected links
   useEffect(() => {
     if (selectedLinks.length > 0 && visitLogs) {
       const filteredLogs = visitLogs.filter(
@@ -1245,50 +1242,57 @@ const IPDRRequestModal = ({ links, onClose, visitLogs }) => {
       });
 
       const uniqueIPs = Array.from(ipMap.keys());
-
       setAvailableIPs(uniqueIPs);
-      setSelectedIPs([]);
-      setStep(2);
+
+      // If we have IPs, move to step 2
+      if (uniqueIPs.length > 0) {
+        setStep(2);
+      }
     } else {
       setAvailableIPs([]);
       setSelectedIPs([]);
+      setAvailableTimes([]);
+      setSelectedTimes([]);
       setStep(1);
     }
   }, [selectedLinks, visitLogs]);
 
-  // Toggle selection for links
-  const toggleLinkSelection = (linkId) => {
-    setSelectedLinks((prev) =>
-      prev.includes(linkId)
-        ? prev.filter((id) => id !== linkId)
-        : [...prev, linkId]
-    );
-  };
+  // Update available times when IPs are selected
+  useEffect(() => {
+    if (selectedIPs.length > 0 && visitLogs && selectedLinks.length > 0) {
+      const filteredLogs = visitLogs.filter(
+        (visit) =>
+          selectedLinks.includes(visit.linkId) &&
+          selectedIPs.includes(visit.publicIp)
+      );
 
-  // Toggle selection for IPs
-  const toggleIPSelection = (ip) => {
-    setSelectedIPs((prev) =>
-      prev.includes(ip) ? prev.filter((item) => item !== ip) : [...prev, ip]
-    );
-  };
+      // Get unique times for the selected IPs
+      const timeMap = new Map();
+      filteredLogs.forEach((visit) => {
+        const time = new Date(visit.timestamp).toISOString();
+        if (!timeMap.has(time)) {
+          timeMap.set(time, visit);
+        }
+      });
 
-  // Select all items in current step
-  const selectAll = (type) => {
-    if (type === "links") {
-      setSelectedLinks(availableLinks.map((link) => link.id));
-    } else if (type === "ips") {
-      setSelectedIPs([...availableIPs]);
+      const uniqueTimes = Array.from(timeMap.keys()).sort();
+      setAvailableTimes(uniqueTimes);
+      setStep(3);
+    } else {
+      setAvailableTimes([]);
+      setSelectedTimes([]);
+      if (selectedLinks.length > 0) {
+        setStep(2);
+      }
     }
-  };
+  }, [selectedIPs, selectedLinks, visitLogs]);
 
-  // Clear all items in current step
-  const clearAll = (type) => {
-    if (type === "links") {
-      setSelectedLinks([]);
-    } else if (type === "ips") {
-      setSelectedIPs([]);
+  // Generate email data when selections change
+  useEffect(() => {
+    if (selectedLinks.length > 0) {
+      generateEmailData();
     }
-  };
+  }, [selectedLinks, selectedIPs, selectedTimes, ispData]);
 
   // Function to generate time range (2 minutes before and after)
   const generateTimeRange = (time) => {
@@ -1329,21 +1333,16 @@ const IPDRRequestModal = ({ links, onClose, visitLogs }) => {
     return isp.split(" ")[0] || "Airtel";
   };
 
-  const handleComposeEmail = () => {
-    if (selectedLinks.length === 0) {
-      alert("Please select at least one link");
-      return;
-    }
+  // Generate email data for the table
+  const generateEmailData = () => {
+    if (selectedLinks.length === 0) return [];
 
     // Get all IPs to use (selected IPs or all available IPs if none selected)
     const ipsToUse = selectedIPs.length > 0 ? selectedIPs : availableIPs;
 
-    if (ipsToUse.length === 0) {
-      alert("No IP addresses available for the selected links");
-      return;
-    }
+    if (ipsToUse.length === 0) return [];
 
-    // Get all unique visit times for selected links and IPs
+    // Get all visit times based on selections
     let filteredLogs = visitLogs.filter((visit) =>
       selectedLinks.includes(visit.linkId)
     );
@@ -1355,6 +1354,14 @@ const IPDRRequestModal = ({ links, onClose, visitLogs }) => {
       );
     }
 
+    // Filter by time if selected
+    if (selectedTimes.length > 0) {
+      filteredLogs = filteredLogs.filter((visit) => {
+        const visitTime = new Date(visit.timestamp).toISOString();
+        return selectedTimes.includes(visitTime);
+      });
+    }
+
     // Get unique IP-Time combinations to avoid duplicates
     const uniqueCombinations = {};
     filteredLogs.forEach((visit) => {
@@ -1364,18 +1371,122 @@ const IPDRRequestModal = ({ links, onClose, visitLogs }) => {
 
       if (!uniqueCombinations[key]) {
         uniqueCombinations[key] = {
+          slNo: Object.keys(uniqueCombinations).length + 1,
           ip,
           time,
           date: formatDate(time),
           timeRange: generateTimeRange(time),
+          isp: getISPName(ip),
         };
       }
     });
 
-    const uniqueEntries = Object.values(uniqueCombinations);
+    const emailDataArray = Object.values(uniqueCombinations);
+    setEmailData(emailDataArray);
+    return emailDataArray;
+  };
 
-    if (uniqueEntries.length === 0) {
-      alert("No visit times available for the selected links and IPs");
+  // Toggle selection for links
+  const toggleLinkSelection = (linkId) => {
+    setSelectedLinks((prev) =>
+      prev.includes(linkId)
+        ? prev.filter((id) => id !== linkId)
+        : [...prev, linkId]
+    );
+  };
+
+  // Toggle selection for IPs
+  const toggleIPSelection = (ip) => {
+    setSelectedIPs((prev) =>
+      prev.includes(ip) ? prev.filter((item) => item !== ip) : [...prev, ip]
+    );
+  };
+
+  // Toggle selection for times
+  const toggleTimeSelection = (time) => {
+    setSelectedTimes((prev) =>
+      prev.includes(time)
+        ? prev.filter((item) => item !== time)
+        : [...prev, time]
+    );
+  };
+
+  // Select all items in current step
+  const selectAll = (type) => {
+    if (type === "links") {
+      setSelectedLinks(availableLinks.map((link) => link.id));
+    } else if (type === "ips") {
+      setSelectedIPs([...availableIPs]);
+    } else if (type === "times") {
+      setSelectedTimes([...availableTimes]);
+    }
+  };
+
+  // Clear all items in current step
+  const clearAll = (type) => {
+    if (type === "links") {
+      setSelectedLinks([]);
+    } else if (type === "ips") {
+      setSelectedIPs([]);
+    } else if (type === "times") {
+      setSelectedTimes([]);
+    }
+  };
+
+  // Handle table data edit
+  const handleTableEdit = (index, field, value) => {
+    const newData = [...emailData];
+    newData[index] = {
+      ...newData[index],
+      [field]: value,
+    };
+    setEmailData(newData);
+  };
+
+  // Copy table data to clipboard
+  const handleCopyTable = () => {
+    const tableText = generateTableText();
+    navigator.clipboard
+      .writeText(tableText)
+      .then(() => {
+        alert("Table copied to clipboard!");
+      })
+      .catch((err) => {
+        console.error("Failed to copy:", err);
+        alert("Failed to copy to clipboard");
+      });
+  };
+
+  // Generate table text for copy
+  const generateTableText = () => {
+    let tableText =
+      "SL #   Operator/ISP         IP Address          Date               Time (BST)\r\n\r\n";
+
+    emailData.forEach((entry) => {
+      const slNo = entry.slNo.toString().padEnd(2, " ");
+      const isp = (entry.isp || "Airtel").padEnd(15, " ");
+      const ipFormatted = (entry.ip || "").padEnd(18, " ");
+      const dateFormatted = (entry.date || "").padEnd(18, " ");
+      const timeRange = entry.timeRange || "";
+
+      tableText += `${slNo}.         ${isp} ${ipFormatted} ${dateFormatted} ${timeRange}\r\n`;
+    });
+
+    return tableText;
+  };
+
+  const handleComposeEmail = (useEditedData = false) => {
+    if (selectedLinks.length === 0) {
+      alert("Please select at least one link");
+      return;
+    }
+
+    // Use edited data if available and flag is set
+    const dataToUse =
+      useEditedData && emailData.length > 0 ? emailData : generateEmailData();
+
+    if (dataToUse.length === 0) {
+      alert("No data available for the selected filters");
       return;
     }
 
@@ -1388,17 +1499,15 @@ const IPDRRequestModal = ({ links, onClose, visitLogs }) => {
     emailBody +=
       "SL #   Operator/ISP         IP Address          Date               Time (BST)\r\n\r\n";
 
-    let entryCounter = 1;
+    // Create entries from data
+    dataToUse.forEach((entry, index) => {
+      const slNo = (entry.slNo || index + 1).toString().padEnd(2, " ");
+      const isp = (entry.isp || "Airtel").padEnd(15, " ");
+      const ipFormatted = (entry.ip || "").padEnd(18, " ");
+      const dateFormatted = (entry.date || "").padEnd(18, " ");
+      const timeRange = entry.timeRange || "";
 
-    // Create one entry per unique IP-Time combination
-    uniqueEntries.forEach((entry) => {
-      const slNo = entryCounter.toString().padEnd(2, " ");
-      const isp = getISPName(entry.ip).padEnd(15, " ");
-      const ipFormatted = entry.ip.padEnd(18, " ");
-      const dateFormatted = entry.date.padEnd(18, " ");
-
-      emailBody += `${slNo}.         ${isp} ${ipFormatted} ${dateFormatted} ${entry.timeRange}\r\n`;
-      entryCounter++;
+      emailBody += `${slNo}.         ${isp} ${ipFormatted} ${dateFormatted} ${timeRange}\r\n`;
     });
 
     emailBody += "\r\nInvestigation Officer:\r\n";
@@ -1418,12 +1527,18 @@ const IPDRRequestModal = ({ links, onClose, visitLogs }) => {
     // Open email client
     window.open(mailtoLink, "_blank");
 
-    onClose();
+    if (!useEditedData) {
+      onClose();
+    }
   };
 
   const resetSelections = () => {
     setSelectedLinks([]);
     setSelectedIPs([]);
+    setSelectedTimes([]);
+    setEmailData([]);
+    setShowEditTable(false);
+    setIsEditing(false);
     setStep(1);
   };
 
@@ -1442,7 +1557,7 @@ const IPDRRequestModal = ({ links, onClose, visitLogs }) => {
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-3xl w-full max-w-2xl mx-auto flex flex-col max-h-[90vh] shadow-2xl border border-gray-200">
+      <div className="bg-white rounded-3xl w-full max-w-4xl mx-auto flex flex-col max-h-[90vh] shadow-2xl border border-gray-200">
         <div className="flex justify-between items-center p-6 border-b border-gray-200 shrink-0">
           <div>
             <h3 className="text-xl font-bold text-gray-900">IPDR Request</h3>
@@ -1473,125 +1588,47 @@ const IPDRRequestModal = ({ links, onClose, visitLogs }) => {
         </div>
 
         <div className="flex-1 overflow-auto p-6">
-          <div className="space-y-6">
-            {/* Progress Steps */}
-            <div className="flex justify-between items-center mb-8">
-              {[1, 2].map((stepNum) => (
-                <div key={stepNum} className="flex items-center">
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
-                      step >= stepNum
-                        ? "bg-indigo-600 text-white"
-                        : "bg-gray-200 text-gray-500"
-                    }`}
-                  >
-                    {stepNum}
-                  </div>
-                  {stepNum < 2 && (
+          {!showEditTable ? (
+            <div className="space-y-6">
+              {/* Progress Steps */}
+              <div className="flex justify-between items-center mb-8">
+                {[1, 2, 3].map((stepNum) => (
+                  <div key={stepNum} className="flex items-center">
                     <div
-                      className={`w-16 h-1 mx-2 ${
-                        step > stepNum ? "bg-indigo-600" : "bg-gray-200"
+                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
+                        step >= stepNum
+                          ? "bg-indigo-600 text-white"
+                          : "bg-gray-200 text-gray-500"
                       }`}
-                    />
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {/* Step 1: Link Selection */}
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <label className="block text-sm font-semibold text-gray-900">
-                  Select Links (Required)
-                </label>
-                <div className="space-x-2">
-                  <button
-                    onClick={() => selectAll("links")}
-                    className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
-                  >
-                    Select All
-                  </button>
-                  <button
-                    onClick={() => clearAll("links")}
-                    className="text-xs text-gray-600 hover:text-gray-800 font-medium"
-                  >
-                    Clear All
-                  </button>
-                </div>
-              </div>
-
-              <div className="max-h-64 overflow-y-auto border border-gray-300 rounded-xl p-3 space-y-2">
-                {availableLinks.length > 0 ? (
-                  availableLinks.map((link) => (
-                    <div
-                      key={link.id}
-                      className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-all duration-200 ${
-                        selectedLinks.includes(link.id)
-                          ? "bg-indigo-50 border border-indigo-200"
-                          : "bg-gray-50 border border-gray-200 hover:bg-gray-100"
-                      }`}
-                      onClick={() => toggleLinkSelection(link.id)}
                     >
-                      {/* Square checkbox */}
-                      <div
-                        className={`w-5 h-5 border-2 flex items-center justify-center transition-all duration-200 ${
-                          selectedLinks.includes(link.id)
-                            ? "bg-indigo-600 border-indigo-600"
-                            : "bg-white border-gray-400"
-                        }`}
-                        style={{ borderRadius: "4px" }}
-                      >
-                        {selectedLinks.includes(link.id) && (
-                          <svg
-                            className="w-3 h-3 text-white"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={3}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                        )}
-                      </div>
-                      <span className="text-sm font-medium text-gray-900 flex-1">
-                        {link.name}
-                      </span>
-                      <span className="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">
-                        {link.visitCount} clicks
-                      </span>
+                      {stepNum}
                     </div>
-                  ))
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    No links available
+                    {stepNum < 3 && (
+                      <div
+                        className={`w-16 h-1 mx-2 ${
+                          step > stepNum ? "bg-indigo-600" : "bg-gray-200"
+                        }`}
+                      />
+                    )}
                   </div>
-                )}
+                ))}
               </div>
-              <p className="text-sm text-gray-500">
-                {selectedLinks.length} of {availableLinks.length} links selected
-              </p>
-            </div>
 
-            {/* Step 2: IP Selection */}
-            {step >= 2 && (
+              {/* Step 1: Link Selection */}
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <label className="block text-sm font-semibold text-gray-900">
-                    Select IP Addresses (Optional)
+                    Select Links (Required)
                   </label>
                   <div className="space-x-2">
                     <button
-                      onClick={() => selectAll("ips")}
+                      onClick={() => selectAll("links")}
                       className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
                     >
                       Select All
                     </button>
                     <button
-                      onClick={() => clearAll("ips")}
+                      onClick={() => clearAll("links")}
                       className="text-xs text-gray-600 hover:text-gray-800 font-medium"
                     >
                       Clear All
@@ -1600,29 +1637,29 @@ const IPDRRequestModal = ({ links, onClose, visitLogs }) => {
                 </div>
 
                 <div className="max-h-64 overflow-y-auto border border-gray-300 rounded-xl p-3 space-y-2">
-                  {availableIPs.length > 0 ? (
-                    availableIPs.map((ip, index) => (
+                  {availableLinks.length > 0 ? (
+                    availableLinks.map((link) => (
                       <div
-                        key={index}
-                        className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-all duration-200 ${
-                          selectedIPs.includes(ip)
+                        key={link.id}
+                        className={`flex flex-col sm:flex-row sm:items-center sm:space-x-3 p-3 sm:p-4 rounded-lg cursor-pointer transition-all duration-200 ${
+                          selectedLinks.includes(link.id)
                             ? "bg-indigo-50 border border-indigo-200"
                             : "bg-gray-50 border border-gray-200 hover:bg-gray-100"
                         }`}
-                        onClick={() => toggleIPSelection(ip)}
+                        onClick={() => toggleLinkSelection(link.id)}
                       >
                         {/* Square checkbox */}
                         <div
-                          className={`w-5 h-5 border-2 flex items-center justify-center transition-all duration-200 ${
-                            selectedIPs.includes(ip)
+                          className={`w-8 h-8 sm:w-5 sm:h-5 border-2 flex items-center justify-center transition-all duration-200 shrink-0 mb-2 sm:mb-0 ${
+                            selectedLinks.includes(link.id)
                               ? "bg-indigo-600 border-indigo-600"
                               : "bg-white border-gray-400"
                           }`}
                           style={{ borderRadius: "4px" }}
                         >
-                          {selectedIPs.includes(ip) && (
+                          {selectedLinks.includes(link.id) && (
                             <svg
-                              className="w-3 h-3 text-white"
+                              className="w-3.5 h-3.5 sm:w-3 sm:h-3 text-white"
                               fill="none"
                               stroke="currentColor"
                               viewBox="0 0 24 24"
@@ -1636,85 +1673,424 @@ const IPDRRequestModal = ({ links, onClose, visitLogs }) => {
                             </svg>
                           )}
                         </div>
-                        <div className="flex-1">
-                          <span className="text-sm font-mono text-gray-900">
-                            {ip}
-                          </span>
-                          {ispData[ip] && (
-                            <div className="text-xs text-gray-500 mt-1">
-                              ISP: {getISPName(ip)}
-                            </div>
-                          )}
-                        </div>
-                        <span className="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">
-                          {
-                            visitLogs.filter(
-                              (v) =>
-                                v.publicIp === ip &&
-                                selectedLinks.includes(v.linkId)
-                            ).length
-                          }{" "}
-                          visits
+
+                        {/* Link name */}
+                        <span className="text-sm sm:text-base font-medium text-gray-900 flex-1 mb-2 sm:mb-0">
+                          {link.name}
+                        </span>
+
+                        {/* Visit count badge */}
+                        <span className="text-xs sm:text-sm text-gray-500 bg-gray-200 px-3 py-1.5 sm:px-2 sm:py-1 rounded self-start sm:self-center">
+                          {link.visitCount} clicks
                         </span>
                       </div>
                     ))
                   ) : (
                     <div className="text-center py-8 text-gray-500">
-                      No IP addresses available for selected links
+                      No links available
                     </div>
                   )}
                 </div>
                 <p className="text-sm text-gray-500">
-                  {selectedIPs.length > 0
-                    ? `${selectedIPs.length} of ${availableIPs.length} IPs selected`
-                    : `All ${availableIPs.length} IPs will be included`}
+                  {selectedLinks.length} of {availableLinks.length} links
+                  selected
                 </p>
               </div>
-            )}
 
-            {/* Preview Info */}
-            {selectedLinks.length > 0 && (
-              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                <h4 className="text-sm font-semibold text-blue-900 mb-2">
-                  IPDR Request Preview
-                </h4>
-                <p className="text-sm text-blue-700">
-                  {selectedLinks.length} link(s) selected •
-                  {selectedIPs.length > 0
-                    ? ` ${selectedIPs.length} IP(s)`
-                    : " All IPs"}
-                </p>
-                <p className="text-xs text-blue-600 mt-1">
-                  All available visit times will be automatically included with
-                  2-minute ranges
-                </p>
+              {/* Step 2: IP Selection */}
+              {step >= 2 && (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <label className="block text-sm font-semibold text-gray-900">
+                      Select IP Addresses (Optional)
+                    </label>
+                    <div className="space-x-2">
+                      <button
+                        onClick={() => selectAll("ips")}
+                        className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+                      >
+                        Select All
+                      </button>
+                      <button
+                        onClick={() => clearAll("ips")}
+                        className="text-xs text-gray-600 hover:text-gray-800 font-medium"
+                      >
+                        Clear All
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="max-h-64 overflow-y-auto border border-gray-300 rounded-xl p-3 space-y-2">
+                    {availableIPs.length > 0 ? (
+                      availableIPs.map((ip, index) => (
+                        <div
+                          key={index}
+                          className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-all duration-200 ${
+                            selectedIPs.includes(ip)
+                              ? "bg-indigo-50 border border-indigo-200"
+                              : "bg-gray-50 border border-gray-200 hover:bg-gray-100"
+                          }`}
+                          onClick={() => toggleIPSelection(ip)}
+                        >
+                          {/* Square checkbox */}
+                          <div
+                            className={`w-5 h-5 border-2 flex items-center justify-center transition-all duration-200 ${
+                              selectedIPs.includes(ip)
+                                ? "bg-indigo-600 border-indigo-600"
+                                : "bg-white border-gray-400"
+                            }`}
+                            style={{ borderRadius: "4px" }}
+                          >
+                            {selectedIPs.includes(ip) && (
+                              <svg
+                                className="w-3 h-3 text-white"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={3}
+                                  d="M5 13l4 4L19 7"
+                                />
+                              </svg>
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <span className="text-sm font-mono text-gray-900">
+                              {ip}
+                            </span>
+                            {ispData[ip] && (
+                              <div className="text-xs text-gray-500 mt-1">
+                                ISP: {getISPName(ip)}
+                              </div>
+                            )}
+                          </div>
+                          <span className="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">
+                            {
+                              visitLogs.filter(
+                                (v) =>
+                                  v.publicIp === ip &&
+                                  selectedLinks.includes(v.linkId)
+                              ).length
+                            }{" "}
+                            visits
+                          </span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">
+                        No IP addresses available for selected links
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-500">
+                    {selectedIPs.length > 0
+                      ? `${selectedIPs.length} of ${availableIPs.length} IPs selected`
+                      : `All ${availableIPs.length} IPs will be included`}
+                  </p>
+                </div>
+              )}
+
+              {/* Step 3: Time Selection (only shown if IPs are selected) */}
+              {step >= 3 && (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <label className="block text-sm font-semibold text-gray-900">
+                      Select Times (Optional)
+                    </label>
+                    <div className="space-x-2">
+                      <button
+                        onClick={() => selectAll("times")}
+                        className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+                      >
+                        Select All
+                      </button>
+                      <button
+                        onClick={() => clearAll("times")}
+                        className="text-xs text-gray-600 hover:text-gray-800 font-medium"
+                      >
+                        Clear All
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="max-h-64 overflow-y-auto border border-gray-300 rounded-xl p-3 space-y-2">
+                    {availableTimes.length > 0 ? (
+                      availableTimes.map((time, index) => {
+                        const date = new Date(time);
+                        const formattedDate = date.toLocaleDateString("en-US");
+                        const formattedTime = date.toLocaleTimeString("en-US", {
+                          hour12: false,
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          second: "2-digit",
+                        });
+
+                        return (
+                          <div
+                            key={index}
+                            className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-all duration-200 ${
+                              selectedTimes.includes(time)
+                                ? "bg-indigo-50 border border-indigo-200"
+                                : "bg-gray-50 border border-gray-200 hover:bg-gray-100"
+                            }`}
+                            onClick={() => toggleTimeSelection(time)}
+                          >
+                            {/* Square checkbox */}
+                            <div
+                              className={`w-5 h-5 border-2 flex items-center justify-center transition-all duration-200 ${
+                                selectedTimes.includes(time)
+                                  ? "bg-indigo-600 border-indigo-600"
+                                  : "bg-white border-gray-400"
+                              }`}
+                              style={{ borderRadius: "4px" }}
+                            >
+                              {selectedTimes.includes(time) && (
+                                <svg
+                                  className="w-3 h-3 text-white"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={3}
+                                    d="M5 13l4 4L19 7"
+                                  />
+                                </svg>
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <div className="text-sm font-medium text-gray-900">
+                                {formattedDate}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {formattedTime}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">
+                        No times available for selected IPs
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-500">
+                    {selectedTimes.length > 0
+                      ? `${selectedTimes.length} of ${availableTimes.length} times selected`
+                      : `All ${availableTimes.length} times will be included`}
+                  </p>
+                </div>
+              )}
+
+              {/* Preview Info */}
+              {selectedLinks.length > 0 && (
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                  <h4 className="text-sm font-semibold text-blue-900 mb-2">
+                    IPDR Request Preview
+                  </h4>
+                  <p className="text-sm text-blue-700">
+                    {selectedLinks.length} link(s) selected •
+                    {selectedIPs.length > 0
+                      ? ` ${selectedIPs.length} IP(s)`
+                      : " All IPs"}{" "}
+                    •
+                    {selectedTimes.length > 0
+                      ? ` ${selectedTimes.length} time(s)`
+                      : " All times"}
+                  </p>
+                  <p className="text-xs text-blue-600 mt-1">
+                    {emailData.length} records generated
+                  </p>
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Edit Table View */
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Edit IPDR Table
+                  </h3>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Edit the table data before composing email
+                  </p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={handleCopyTable}
+                    className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                      />
+                    </svg>
+                    <span>Copy Table</span>
+                  </button>
+                  <button
+                    onClick={() => setShowEditTable(false)}
+                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors duration-200"
+                  >
+                    Back to Filters
+                  </button>
+                </div>
               </div>
-            )}
-          </div>
+
+              <div className="overflow-x-auto border border-gray-300 rounded-xl">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        SL #
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        Operator/ISP
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        IP Address
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        Date
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        Time (BST)
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {emailData.map((entry, index) => (
+                      <tr key={index} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <input
+                            type="text"
+                            value={entry.slNo}
+                            onChange={(e) =>
+                              handleTableEdit(index, "slNo", e.target.value)
+                            }
+                            className="w-16 px-2 py-1 border border-gray-300 rounded text-center"
+                          />
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <input
+                            type="text"
+                            value={entry.isp}
+                            onChange={(e) =>
+                              handleTableEdit(index, "isp", e.target.value)
+                            }
+                            className="w-full px-2 py-1 border border-gray-300 rounded"
+                          />
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <input
+                            type="text"
+                            value={entry.ip}
+                            onChange={(e) =>
+                              handleTableEdit(index, "ip", e.target.value)
+                            }
+                            className="w-full px-2 py-1 border border-gray-300 rounded font-mono"
+                          />
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <input
+                            type="text"
+                            value={entry.date}
+                            onChange={(e) =>
+                              handleTableEdit(index, "date", e.target.value)
+                            }
+                            className="w-full px-2 py-1 border border-gray-300 rounded"
+                          />
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <input
+                            type="text"
+                            value={entry.timeRange}
+                            onChange={(e) =>
+                              handleTableEdit(
+                                index,
+                                "timeRange",
+                                e.target.value
+                              )
+                            }
+                            className="w-full px-2 py-1 border border-gray-300 rounded"
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {emailData.length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  No data available. Please select filters first.
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
-        <div className="p-6 border-t border-gray-200 bg-gray-50 shrink-0 rounded-b-3xl flex justify-between">
-          <button
-            onClick={resetSelections}
-            className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-all duration-200 font-medium"
-          >
-            Reset All
-          </button>
-          <div className="space-x-3">
-            <button
-              onClick={onClose}
-              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-all duration-200 font-medium"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleComposeEmail}
-              disabled={selectedLinks.length === 0 || loadingISP}
-              className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium shadow-lg"
-            >
-              {loadingISP ? "Loading ISP..." : "Compose Email"}
-            </button>
-          </div>
+        <div className="p-4 sm:p-6 border-t border-gray-200 bg-gray-50 shrink-0 rounded-b-3xl">
+          {!showEditTable ? (
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <button
+                onClick={resetSelections}
+                className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-all duration-200 font-medium text-sm sm:text-base"
+              >
+                Reset All
+              </button>
+
+              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                <button
+                  onClick={() => setShowEditTable(true)}
+                  disabled={emailData.length === 0}
+                  className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl hover:from-amber-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium text-sm sm:text-base shadow-lg"
+                >
+                  Edit Table
+                </button>
+                <button
+                  onClick={() => handleComposeEmail(false)}
+                  disabled={selectedLinks.length === 0 || loadingISP}
+                  className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium text-sm sm:text-base shadow-lg"
+                >
+                  {loadingISP ? "Loading ISP..." : "Compose Email"}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between w-full">
+              <button
+                onClick={() => setShowEditTable(false)}
+                className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-100 transition-all duration-200 font-medium text-sm sm:text-base"
+              >
+                Back to Filters
+              </button>
+
+              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                <button
+                  onClick={() => handleComposeEmail(true)}
+                  disabled={emailData.length === 0}
+                  className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium text-sm sm:text-base shadow-lg"
+                >
+                  Compose with Edited Data
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -1853,39 +2229,36 @@ const Analytics = ({ stats, links }) => {
   return (
     <div className="space-y-8">
       {/* Control Buttons */}
-      <div className="flex justify-end items-center space-x-4">
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-end items-stretch sm:items-center">
         <button
           onClick={() => setShowIPDRModal(true)}
           disabled={loadingAllLogs || !links || links.length === 0}
-          className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-2xl px-6 py-4 border border-blue-200 shadow-sm hover:from-blue-700 hover:to-cyan-700 transition-all duration-200 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center justify-center sm:justify-start space-x-2 w-full sm:w-auto bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-2xl px-4 sm:px-6 py-3.5 sm:py-4 border border-blue-200 shadow-sm hover:from-blue-700 hover:to-cyan-700 transition-all duration-200 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
         >
-          <FiFileText className="w-5 h-5" />
-          <span className="text-sm font-medium">
-            {loadingAllLogs ? "Loading..." : "IPDR Request"}
-          </span>
+          <FiFileText className="w-5 h-5 flex-shrink-0" />
+          <span>{loadingAllLogs ? "Loading..." : "IPDR Request"}</span>
         </button>
+
         <button
           onClick={handleCSVModalOpen}
           disabled={loadingAllLogs || !links || links.length === 0}
-          className="flex items-center space-x-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-2xl px-6 py-4 border border-green-200 shadow-sm hover:from-green-700 hover:to-emerald-700 transition-all duration-200 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center justify-center sm:justify-start space-x-2 w-full sm:w-auto bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-2xl px-4 sm:px-6 py-3.5 sm:py-4 border border-green-200 shadow-sm hover:from-green-700 hover:to-emerald-700 transition-all duration-200 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
         >
-          <FiDownload className="w-5 h-5" />
-          <span className="text-sm font-medium">
-            {loadingAllLogs ? "Loading..." : "CSV File"}
-          </span>
+          <FiDownload className="w-5 h-5 flex-shrink-0" />
+          <span>{loadingAllLogs ? "Loading..." : "CSV File"}</span>
         </button>
 
         <button
           onClick={handleRefresh}
           disabled={refreshing}
-          className="flex items-center space-x-2 bg-white rounded-2xl p-4 border border-gray-200 shadow-sm hover:bg-gray-50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center justify-center sm:justify-start space-x-2 w-full sm:w-auto bg-white rounded-2xl px-4 sm:px-6 py-3.5 sm:py-4 border border-gray-200 shadow-sm hover:bg-gray-50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
         >
           <FiRefreshCw
-            className={`w-5 h-5 text-gray-600 ${
+            className={`w-5 h-5 text-gray-600 flex-shrink-0 ${
               refreshing ? "animate-spin" : ""
             }`}
           />
-          <span className="text-sm font-medium text-gray-700">
+          <span className="text-gray-700">
             {refreshing ? "Refreshing..." : "Refresh Data"}
           </span>
         </button>

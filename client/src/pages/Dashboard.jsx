@@ -177,11 +177,11 @@ const Dashboard = () => {
       icon: <FiBarChart2 />,
       tab: "analytics",
     },
-    {
-      name: "Settings",
-      icon: <FiSettings />,
-      tab: "settings",
-    },
+    // {
+    //   name: "Settings",
+    //   icon: <FiSettings />,
+    //   tab: "settings",
+    // },
   ];
 
   return (
@@ -322,7 +322,7 @@ const Dashboard = () => {
             <div className="p-4 border-t border-gray-200">
               <motion.div className="flex items-center">
                 <div className="w-10 h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold shadow-md">
-                  {user?.username?.charAt(0)?.toUpperCase() || "U"}
+                  {user?.name?.charAt(0)?.toUpperCase() || "U"}
                 </div>
 
                 <motion.div
@@ -332,7 +332,7 @@ const Dashboard = () => {
                 >
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-[700] text-gray-900 truncate">
-                      {user?.username || "User"}
+                      {user?.name || "User"}
                     </p>
                     <div className="flex gap-1">
                       <motion.button
