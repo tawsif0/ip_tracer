@@ -20,13 +20,15 @@ const corsOptions = {
       "http://localhost:3000",
       "http://localhost:5000",
       "https://doiniknews.xyz",
-      "https://tracker.arcyntech.com/",
-      "https://tracker.cleanpc.xyz/",
+      "https://tracker.arcyntech.com",
+      "https://tracker.cleanpc.xyz",
       "https://ipapi.co",
       "https://cleanpc.xyz",
       "https://protidinernews.xyz",
       "https://api.cleanpc.xyz",
       "https://trackops.online",
+      /^https:\/\/.*\.arcyntech\.com$/, // Regex for all subdomains
+      /^https:\/\/.*\.cleanpc\.xyz$/,
     ].filter(Boolean); // Remove any undefined values
 
     // Allow requests with no origin (like mobile apps, curl, Postman, server-to-server)
