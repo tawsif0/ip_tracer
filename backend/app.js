@@ -10,25 +10,146 @@ const errorHandler = require("./middlewares/errorHandler");
 
 const app = express();
 
-// Security middleware
-app.use(helmet());
-app.use(cors("*"));
-app.use(morgan("dev"));
-app.use(express.json());
+// Enhanced CORS Configuration
+const corsOptions = {
+  origin: function (origin, callback) {
+    // List of allowed origins
+    const allowedOrigins = [
+      "http://localhost:5173",
+      "http://localhost:5174",
+      "http://localhost:3000",
+      "http://localhost:5000",
+      "https://doiniknews.xyz",
+      "https://tracker.arcyntech.com/",
+      "https://tracker.cleanpc.xyz/",
+      "https://ipapi.co",
+      "https://cleanpc.xyz",
+      "https://protidinernews.xyz",
+      "https://api.cleanpc.xyz",
+      "https://trackops.online",
+    ].filter(Boolean); // Remove any undefined values
+
+    // Allow requests with no origin (like mobile apps, curl, Postman, server-to-server)
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    // Check if the origin is in the allowed list
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else if (process.env.NODE_ENV === "development") {
+      // In development, you might want to be more permissive
+      console.warn(
+        `CORS warning: Origin ${origin} not in allowed list, but allowing in development mode`
+      );
+      callback(null, true);
+    } else {
+      // In production, be strict
+      callback(new Error(`Not allowed by CORS. Origin: ${origin}`));
+    }
+  },
+  credentials: true, // Important for cookies, authorization headers
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "X-Requested-With",
+    "x-auth-token",
+    "Accept",
+    "Origin",
+    "Access-Control-Allow-Headers",
+    "Access-Control-Request-Headers",
+  ],
+  exposedHeaders: [
+    "Content-Length",
+    "Content-Type",
+    "Authorization",
+    "x-auth-token",
+  ],
+  preflightContinue: false,
+  optionsSuccessStatus: 204,
+  maxAge: 86400, // 24 hours in seconds
+};
+
+// Security middleware - ORDER MATTERS!
+// 1. First apply CORS
+app.use(cors(corsOptions));
+
+// 2. Handle preflight requests explicitly
+app.options("*", cors(corsOptions));
+
+// 3. Other security middleware
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrc: ["'self'"],
+        imgSrc: ["'self'", "data:", "https:"],
+        connectSrc: ["'self'", process.env.FRONTEND_URL].filter(Boolean),
+      },
+    },
+  })
+);
+
+// 4. Logging
+app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
+
+// 5. Body parsing
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  max: process.env.NODE_ENV === "production" ? 100 : 1000, // More lenient in development
+  message: {
+    status: 429,
+    message: "Too many requests from this IP, please try again later.",
+  },
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  skip: (req) => {
+    // Skip rate limiting for certain paths (like health checks)
+    return req.path === "/api/health";
+  },
 });
-app.use(limiter);
+
+// Apply rate limiting to all routes except health check
+app.use("/api", limiter);
+
+// Health check route (outside rate limiting)
+app.get("/api/health", (req, res) => {
+  res.status(200).json({
+    status: "OK",
+    message: "Server is running",
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || "development",
+    cors: {
+      enabled: true,
+      allowedOrigins: corsOptions.origin.toString(),
+    },
+  });
+});
 
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/links", linkRoutes);
 app.use("/api/stats", statsRoutes);
 
-// Error handling middleware
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({
+    status: "error",
+    message: "Route not found",
+    path: req.path,
+    method: req.method,
+  });
+});
+
+// Error handling middleware - must be last
 app.use(errorHandler);
 
 module.exports = app;
