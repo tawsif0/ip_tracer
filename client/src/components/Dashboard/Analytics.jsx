@@ -1204,7 +1204,10 @@ const IPDRRequestModal = ({ links, onClose, visitLogs }) => {
   // Function to fetch ISP data for an IP
   const fetchISPData = async (ip) => {
     try {
-      const response = await fetch(`https://ipapi.co/${ip}/json/`);
+      // Use IP-API (higher limits)
+      const response = await fetch(
+        `http://ip-api.com/json/${ip}?fields=66846719`
+      );
       const data = await response.json();
       return data.org || data.isp || "Unknown ISP";
     } catch (error) {

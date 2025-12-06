@@ -4,6 +4,8 @@ import { useAuth } from "../hooks/useAuth";
 import axios from "axios";
 import Analytics from "../components/Dashboard/Analytics";
 import LinkManagement from "../components/Dashboard/LinkManagement";
+import LacCellConverter from "../components/Dashboard/LacCellConverter";
+
 import Settings from "../components/Dashboard/Settings";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -15,6 +17,7 @@ import {
   FiX,
   FiLogOut,
   FiUser,
+  FiNavigation,
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
@@ -47,6 +50,8 @@ const TabContent = React.memo(
             onRefresh={onRefreshAnalytics}
           />
         );
+      case "converter": // Add this case
+        return <LacCellConverter />;
       case "settings":
         return <Settings user={user} />;
       default:
@@ -176,6 +181,11 @@ const Dashboard = () => {
       name: "Analytics",
       icon: <FiBarChart2 />,
       tab: "analytics",
+    },
+    {
+      name: "Cell Converter",
+      icon: <FiNavigation />, // You might want to add a new icon import: FiMapPin
+      tab: "converter",
     },
     // {
     //   name: "Settings",
@@ -506,12 +516,15 @@ const Dashboard = () => {
                 <h1 className="text-2xl font-bold text-gray-900">
                   {activeTab === "links" && "My Links"}
                   {activeTab === "analytics" && "Analytics"}
+                  {activeTab === "converter" && "Cell to Location Converter"}
                   {activeTab === "settings" && "Settings"}
                 </h1>
                 <p className="text-gray-600 mt-1">
                   {activeTab === "links" &&
                     "Manage and create your short links"}
                   {activeTab === "analytics" && "Track your link performance"}
+                  {activeTab === "converter" &&
+                    "Convert cell tower data to geographic coordinates"}
                   {activeTab === "settings" && "Manage your account settings"}
                 </p>
               </div>

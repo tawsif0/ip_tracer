@@ -27,6 +27,15 @@ const corsOptions = {
       "https://protidinernews.xyz",
       "https://api.cleanpc.xyz",
       "https://trackops.online",
+      "https://sports.doiniknews.xyz",
+      "https://foreign.doiniknews.xyz",
+      "https://local.doiniknews.xyz",
+      "https://national.doiniknews.xyz",
+      "https://daily.doiniknews.xyz",
+      "https://entertainment.doiniknews.xyz",
+      "https://crime.doiniknews.xyz",
+      "https://humanrights.doiniknews.xyz",
+
       /^https:\/\/.*\.arcyntech\.com$/, // Regex for all subdomains
       /^https:\/\/.*\.cleanpc\.xyz$/,
     ].filter(Boolean); // Remove any undefined values
