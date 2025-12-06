@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useState } from "react";
 import axios from "axios";
@@ -1175,8 +1174,7 @@ const CSVDownloadModal = ({ links, onClose, visitLogs }) => {
     </div>
   );
 };
-// IPDR Request Modal Component
-// IPDR Request Modal Component
+// IPDR Request Modal Component with Enhanced Edit Table
 const IPDRRequestModal = ({ links, onClose, visitLogs }) => {
   const [selectedLinks, setSelectedLinks] = useState([]);
   const [selectedIPs, setSelectedIPs] = useState([]);
@@ -1185,10 +1183,23 @@ const IPDRRequestModal = ({ links, onClose, visitLogs }) => {
   const [availableTimes, setAvailableTimes] = useState([]);
   const [ispData, setIspData] = useState({});
   const [loadingISP, setLoadingISP] = useState(false);
-  const [step, setStep] = useState(1); // 1: Links, 2: IPs, 3: Times
+  const [step, setStep] = useState(1);
   const [showEditTable, setShowEditTable] = useState(false);
   const [emailData, setEmailData] = useState([]);
-  const [isEditing, setIsEditing] = useState(false);
+  const [emailConfig, setEmailConfig] = useState({
+    subject: "Requesting for ipdr/iplog",
+    salutation: "Dear Sir,",
+    requestText:
+      "Provide please IPDR mentioned below target IP within date range.",
+    officerName: "Investigation Officer:",
+    officerMobile: "Mob:",
+    regards: "Regards:",
+    senderName: "Name",
+    bpNumber: "BP-",
+    designation: "Designation",
+    senderMobile: "Mob:",
+    senderLabel: "Sender:",
+  });
 
   // Function to fetch ISP data for an IP
   const fetchISPData = async (ip) => {
@@ -1233,7 +1244,6 @@ const IPDRRequestModal = ({ links, onClose, visitLogs }) => {
         (visit) => selectedLinks.includes(visit.linkId) && visit.publicIp
       );
 
-      // Use a Map to ensure unique IPs while preserving order
       const ipMap = new Map();
       filteredLogs.forEach((visit) => {
         if (visit.publicIp && !ipMap.has(visit.publicIp)) {
@@ -1244,7 +1254,6 @@ const IPDRRequestModal = ({ links, onClose, visitLogs }) => {
       const uniqueIPs = Array.from(ipMap.keys());
       setAvailableIPs(uniqueIPs);
 
-      // If we have IPs, move to step 2
       if (uniqueIPs.length > 0) {
         setStep(2);
       }
@@ -1266,7 +1275,6 @@ const IPDRRequestModal = ({ links, onClose, visitLogs }) => {
           selectedIPs.includes(visit.publicIp)
       );
 
-      // Get unique times for the selected IPs
       const timeMap = new Map();
       filteredLogs.forEach((visit) => {
         const time = new Date(visit.timestamp).toISOString();
@@ -1297,14 +1305,11 @@ const IPDRRequestModal = ({ links, onClose, visitLogs }) => {
   // Function to generate time range (2 minutes before and after)
   const generateTimeRange = (time) => {
     const date = new Date(time);
-
-    // Calculate 2 minutes before and after
     const startTime = new Date(date.getTime() - 2 * 60 * 1000);
     const endTime = new Date(date.getTime() + 2 * 60 * 1000);
 
-    // Format as HH:mm:ss
     const formatTime = (dateObj) => {
-      return dateObj.toTimeString().split(" ")[0]; // Gets HH:mm:ss
+      return dateObj.toTimeString().split(" ")[0];
     };
 
     return `${formatTime(startTime)} to ${formatTime(endTime)}`;
@@ -1319,9 +1324,8 @@ const IPDRRequestModal = ({ links, onClose, visitLogs }) => {
   // Function to get ISP name for an IP
   const getISPName = (ip) => {
     const isp = ispData[ip];
-    if (!isp) return "Airtel"; // Default to Airtel if not loaded yet
+    if (!isp) return "Airtel";
 
-    // Extract just the ISP name from the organization field
     if (isp.includes("Airtel")) return "Airtel";
     if (isp.includes("BSNL")) return "BSNL";
     if (isp.includes("Jio")) return "Jio";
@@ -1329,7 +1333,6 @@ const IPDRRequestModal = ({ links, onClose, visitLogs }) => {
     if (isp.includes("ACT")) return "ACT";
     if (isp.includes("Hathway")) return "Hathway";
 
-    // Return the first word or the whole string if no known ISP found
     return isp.split(" ")[0] || "Airtel";
   };
 
@@ -1337,24 +1340,19 @@ const IPDRRequestModal = ({ links, onClose, visitLogs }) => {
   const generateEmailData = () => {
     if (selectedLinks.length === 0) return [];
 
-    // Get all IPs to use (selected IPs or all available IPs if none selected)
     const ipsToUse = selectedIPs.length > 0 ? selectedIPs : availableIPs;
-
     if (ipsToUse.length === 0) return [];
 
-    // Get all visit times based on selections
     let filteredLogs = visitLogs.filter((visit) =>
       selectedLinks.includes(visit.linkId)
     );
 
-    // Filter by IP if selected
     if (selectedIPs.length > 0) {
       filteredLogs = filteredLogs.filter((visit) =>
         selectedIPs.includes(visit.publicIp)
       );
     }
 
-    // Filter by time if selected
     if (selectedTimes.length > 0) {
       filteredLogs = filteredLogs.filter((visit) => {
         const visitTime = new Date(visit.timestamp).toISOString();
@@ -1362,7 +1360,6 @@ const IPDRRequestModal = ({ links, onClose, visitLogs }) => {
       });
     }
 
-    // Get unique IP-Time combinations to avoid duplicates
     const uniqueCombinations = {};
     filteredLogs.forEach((visit) => {
       const ip = visit.publicIp;
@@ -1384,6 +1381,14 @@ const IPDRRequestModal = ({ links, onClose, visitLogs }) => {
     const emailDataArray = Object.values(uniqueCombinations);
     setEmailData(emailDataArray);
     return emailDataArray;
+  };
+
+  // Handle email config changes
+  const handleEmailConfigChange = (field, value) => {
+    setEmailConfig((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
   };
 
   // Toggle selection for links
@@ -1443,7 +1448,21 @@ const IPDRRequestModal = ({ links, onClose, visitLogs }) => {
     setEmailData(newData);
   };
 
-  // Copy table data to clipboard
+  // Copy all email content to clipboard
+  const handleCopyAll = () => {
+    const fullEmailContent = generateFullEmailContent();
+    navigator.clipboard
+      .writeText(fullEmailContent)
+      .then(() => {
+        alert("Full email content copied to clipboard!");
+      })
+      .catch((err) => {
+        console.error("Failed to copy:", err);
+        alert("Failed to copy to clipboard");
+      });
+  };
+
+  // Copy only table to clipboard
   const handleCopyTable = () => {
     const tableText = generateTableText();
     navigator.clipboard
@@ -1475,49 +1494,70 @@ const IPDRRequestModal = ({ links, onClose, visitLogs }) => {
     return tableText;
   };
 
+  // Generate full email content
+  const generateFullEmailContent = () => {
+    let emailBody = "";
+
+    // Add salutation
+    if (emailConfig.salutation) {
+      emailBody += `${emailConfig.salutation}\r\n\r\n`;
+    }
+
+    // Add request text
+    if (emailConfig.requestText) {
+      emailBody += `${emailConfig.requestText}\r\n\r\n`;
+    }
+
+    // Add table
+    emailBody += generateTableText();
+    emailBody += "\r\n";
+
+    // Add officer details
+    if (emailConfig.officerName) {
+      emailBody += `${emailConfig.officerName}\r\n`;
+    }
+    if (emailConfig.officerMobile) {
+      emailBody += `${emailConfig.officerMobile}\r\n\r\n`;
+    }
+
+    // Add regards section
+    if (emailConfig.regards) {
+      emailBody += `${emailConfig.regards}\r\n`;
+    }
+    if (emailConfig.senderName) {
+      emailBody += `${emailConfig.senderName}\r\n`;
+    }
+    if (emailConfig.bpNumber) {
+      emailBody += `${emailConfig.bpNumber}\r\n`;
+    }
+    if (emailConfig.designation) {
+      emailBody += `${emailConfig.designation}\r\n`;
+    }
+    if (emailConfig.senderMobile) {
+      emailBody += `${emailConfig.senderMobile}\r\n`;
+    }
+    if (emailConfig.senderLabel) {
+      emailBody += `${emailConfig.senderLabel}`;
+    }
+
+    return emailBody;
+  };
+
   const handleComposeEmail = (useEditedData = false) => {
     if (selectedLinks.length === 0) {
       alert("Please select at least one link");
       return;
     }
 
-    // Use edited data if available and flag is set
     const dataToUse =
       useEditedData && emailData.length > 0 ? emailData : generateEmailData();
-
     if (dataToUse.length === 0) {
       alert("No data available for the selected filters");
       return;
     }
 
-    // Create email content with proper formatting
-    const emailSubject = "Requesting for ipdr/iplog";
-
-    let emailBody = "Dear Sir,\r\n\r\n";
-    emailBody +=
-      "Provide please IPDR mentioned below target IP within date range.\r\n\r\n";
-    emailBody +=
-      "SL #   Operator/ISP         IP Address          Date               Time (BST)\r\n\r\n";
-
-    // Create entries from data
-    dataToUse.forEach((entry, index) => {
-      const slNo = (entry.slNo || index + 1).toString().padEnd(2, " ");
-      const isp = (entry.isp || "Airtel").padEnd(15, " ");
-      const ipFormatted = (entry.ip || "").padEnd(18, " ");
-      const dateFormatted = (entry.date || "").padEnd(18, " ");
-      const timeRange = entry.timeRange || "";
-
-      emailBody += `${slNo}.         ${isp} ${ipFormatted} ${dateFormatted} ${timeRange}\r\n`;
-    });
-
-    emailBody += "\r\nInvestigation Officer:\r\n";
-    emailBody += "Mob:\r\n\r\n";
-    emailBody += "Regards:\r\n";
-    emailBody += "Name\r\n";
-    emailBody += "BP-\r\n";
-    emailBody += "Designation\r\n";
-    emailBody += "Mob:\r\n";
-    emailBody += "Sender:";
+    const emailSubject = emailConfig.subject || "Requesting for ipdr/iplog";
+    const emailBody = generateFullEmailContent();
 
     // Create mailto link with proper encoding
     const mailtoLink = `mailto:?subject=${encodeURIComponent(
@@ -1538,11 +1578,24 @@ const IPDRRequestModal = ({ links, onClose, visitLogs }) => {
     setSelectedTimes([]);
     setEmailData([]);
     setShowEditTable(false);
-    setIsEditing(false);
+    setEmailConfig({
+      subject: "Requesting for ipdr/iplog",
+      salutation: "Dear Sir,",
+      requestText:
+        "Provide please IPDR mentioned below target IP within date range.",
+      officerName: "Investigation Officer:",
+      officerMobile: "Mob:",
+      regards: "Regards:",
+      senderName: "Name",
+      bpNumber: "BP-",
+      designation: "Designation",
+      senderMobile: "Mob:",
+      senderLabel: "Sender:",
+    });
     setStep(1);
   };
 
-  // Get all unique link IDs from visitLogs - show ALL links, not just those with visits
+  // Get all unique link IDs from visitLogs
   const availableLinks =
     links?.map((link) => {
       const visitCount =
@@ -1557,7 +1610,7 @@ const IPDRRequestModal = ({ links, onClose, visitLogs }) => {
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-3xl w-full max-w-4xl mx-auto flex flex-col max-h-[90vh] shadow-2xl border border-gray-200">
+      <div className="bg-white rounded-3xl w-full max-w-5xl mx-auto flex flex-col max-h-[90vh] shadow-2xl border border-gray-200">
         <div className="flex justify-between items-center p-6 border-b border-gray-200 shrink-0">
           <div>
             <h3 className="text-xl font-bold text-gray-900">IPDR Request</h3>
@@ -1648,7 +1701,6 @@ const IPDRRequestModal = ({ links, onClose, visitLogs }) => {
                         }`}
                         onClick={() => toggleLinkSelection(link.id)}
                       >
-                        {/* Square checkbox */}
                         <div
                           className={`w-8 h-8 sm:w-5 sm:h-5 border-2 flex items-center justify-center transition-all duration-200 shrink-0 mb-2 sm:mb-0 ${
                             selectedLinks.includes(link.id)
@@ -1674,12 +1726,10 @@ const IPDRRequestModal = ({ links, onClose, visitLogs }) => {
                           )}
                         </div>
 
-                        {/* Link name */}
                         <span className="text-sm sm:text-base font-medium text-gray-900 flex-1 mb-2 sm:mb-0">
                           {link.name}
                         </span>
 
-                        {/* Visit count badge */}
                         <span className="text-xs sm:text-sm text-gray-500 bg-gray-200 px-3 py-1.5 sm:px-2 sm:py-1 rounded self-start sm:self-center">
                           {link.visitCount} clicks
                         </span>
@@ -1732,7 +1782,6 @@ const IPDRRequestModal = ({ links, onClose, visitLogs }) => {
                           }`}
                           onClick={() => toggleIPSelection(ip)}
                         >
-                          {/* Square checkbox */}
                           <div
                             className={`w-5 h-5 border-2 flex items-center justify-center transition-all duration-200 ${
                               selectedIPs.includes(ip)
@@ -1793,7 +1842,7 @@ const IPDRRequestModal = ({ links, onClose, visitLogs }) => {
                 </div>
               )}
 
-              {/* Step 3: Time Selection (only shown if IPs are selected) */}
+              {/* Step 3: Time Selection */}
               {step >= 3 && (
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
@@ -1838,7 +1887,6 @@ const IPDRRequestModal = ({ links, onClose, visitLogs }) => {
                             }`}
                             onClick={() => toggleTimeSelection(time)}
                           >
-                            {/* Square checkbox */}
                             <div
                               className={`w-5 h-5 border-2 flex items-center justify-center transition-all duration-200 ${
                                 selectedTimes.includes(time)
@@ -1911,18 +1959,18 @@ const IPDRRequestModal = ({ links, onClose, visitLogs }) => {
               )}
             </div>
           ) : (
-            /* Edit Table View */
+            /* Enhanced Edit Table View with Email Configuration */
             <div className="space-y-6">
-              <div className="flex justify-between items-center">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900">
-                    Edit IPDR Table
+                    Edit IPDR Email Content
                   </h3>
                   <p className="text-sm text-gray-600 mt-1">
-                    Edit the table data before composing email
+                    Edit table data and email configuration
                   </p>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex flex-wrap gap-2">
                   <button
                     onClick={handleCopyTable}
                     className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200"
@@ -1943,14 +1991,163 @@ const IPDRRequestModal = ({ links, onClose, visitLogs }) => {
                     <span>Copy Table</span>
                   </button>
                   <button
-                    onClick={() => setShowEditTable(false)}
-                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors duration-200"
+                    onClick={handleCopyAll}
+                    className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors duration-200"
                   >
-                    Back to Filters
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                      />
+                    </svg>
+                    <span>Copy All</span>
                   </button>
                 </div>
               </div>
 
+              {/* Email Configuration Section */}
+              <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+                <h4 className="text-md font-semibold text-gray-900 mb-4">
+                  Email Configuration
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Email Subject
+                    </label>
+                    <input
+                      type="text"
+                      value={emailConfig.subject}
+                      onChange={(e) =>
+                        handleEmailConfigChange("subject", e.target.value)
+                      }
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      placeholder="Email subject"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Salutation
+                    </label>
+                    <input
+                      type="text"
+                      value={emailConfig.salutation}
+                      onChange={(e) =>
+                        handleEmailConfigChange("salutation", e.target.value)
+                      }
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      placeholder="Salutation"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Request Text
+                    </label>
+                    <textarea
+                      value={emailConfig.requestText}
+                      onChange={(e) =>
+                        handleEmailConfigChange("requestText", e.target.value)
+                      }
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      rows="2"
+                      placeholder="Request text"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Officer Name
+                    </label>
+                    <input
+                      type="text"
+                      value={emailConfig.officerName}
+                      onChange={(e) =>
+                        handleEmailConfigChange("officerName", e.target.value)
+                      }
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      placeholder="Officer name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Officer Mobile
+                    </label>
+                    <input
+                      type="text"
+                      value={emailConfig.officerMobile}
+                      onChange={(e) =>
+                        handleEmailConfigChange("officerMobile", e.target.value)
+                      }
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      placeholder="Officer mobile"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Sender Name
+                    </label>
+                    <input
+                      type="text"
+                      value={emailConfig.senderName}
+                      onChange={(e) =>
+                        handleEmailConfigChange("senderName", e.target.value)
+                      }
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      placeholder="Sender name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      BP Number
+                    </label>
+                    <input
+                      type="text"
+                      value={emailConfig.bpNumber}
+                      onChange={(e) =>
+                        handleEmailConfigChange("bpNumber", e.target.value)
+                      }
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      placeholder="BP number"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Designation
+                    </label>
+                    <input
+                      type="text"
+                      value={emailConfig.designation}
+                      onChange={(e) =>
+                        handleEmailConfigChange("designation", e.target.value)
+                      }
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      placeholder="Designation"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Sender Mobile
+                    </label>
+                    <input
+                      type="text"
+                      value={emailConfig.senderMobile}
+                      onChange={(e) =>
+                        handleEmailConfigChange("senderMobile", e.target.value)
+                      }
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      placeholder="Sender mobile"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* IPDR Table */}
               <div className="overflow-x-auto border border-gray-300 rounded-xl">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
@@ -2040,6 +2237,42 @@ const IPDRRequestModal = ({ links, onClose, visitLogs }) => {
                   No data available. Please select filters first.
                 </div>
               )}
+
+              {/* Preview Section */}
+              {emailData.length > 0 && (
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
+                  <h4 className="text-md font-semibold text-blue-900 mb-4">
+                    Email Preview
+                  </h4>
+                  <div className="bg-white rounded-lg p-4 border border-blue-300 max-h-64 overflow-y-auto">
+                    <pre className="text-sm text-gray-800 whitespace-pre-wrap">
+                      <strong>Subject:</strong> {emailConfig.subject}
+                      {"\n\n"}
+                      {emailConfig.salutation}
+                      {"\n\n"}
+                      {emailConfig.requestText}
+                      {"\n\n"}
+                      {generateTableText()}
+                      {"\n\n"}
+                      {emailConfig.officerName}
+                      {"\n"}
+                      {emailConfig.officerMobile}
+                      {"\n\n"}
+                      {emailConfig.regards}
+                      {"\n"}
+                      {emailConfig.senderName}
+                      {"\n"}
+                      {emailConfig.bpNumber}
+                      {"\n"}
+                      {emailConfig.designation}
+                      {"\n"}
+                      {emailConfig.senderMobile}
+                      {"\n"}
+                      {emailConfig.senderLabel}
+                    </pre>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -2060,7 +2293,7 @@ const IPDRRequestModal = ({ links, onClose, visitLogs }) => {
                   disabled={emailData.length === 0}
                   className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl hover:from-amber-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium text-sm sm:text-base shadow-lg"
                 >
-                  Edit Table
+                  Edit & Compose Email
                 </button>
                 <button
                   onClick={() => handleComposeEmail(false)}
@@ -2086,7 +2319,7 @@ const IPDRRequestModal = ({ links, onClose, visitLogs }) => {
                   disabled={emailData.length === 0}
                   className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium text-sm sm:text-base shadow-lg"
                 >
-                  Compose with Edited Data
+                  Compose Email
                 </button>
               </div>
             </div>
