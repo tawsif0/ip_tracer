@@ -9,6 +9,9 @@ import {
   FiCheck,
   FiAlertCircle,
   FiGlobe,
+  FiDatabase,
+  FiCpu,
+  FiLoader,
 } from "react-icons/fi";
 import { toast } from "react-hot-toast";
 
@@ -50,7 +53,7 @@ const LacCellConverter = () => {
 
   const [formData, setFormData] = useState({
     mcc: "470", // Default MCC for Bangladesh
-    mnc: "01", // Default to Grameenphone
+    mnc: "", // Default to Grameenphone
     lac: "",
     cid: "",
   });
@@ -62,6 +65,11 @@ const LacCellConverter = () => {
   const [selectedOperator, setSelectedOperator] = useState(
     bangladeshOperators[0]
   );
+  const [apiSource, setApiSource] = useState("UnwiredLabs"); // Track which API is used
+  const [apiStatus, setApiStatus] = useState({
+    unwiredlabs: false,
+    opencellid: false,
+  });
 
   // Bangladesh-specific sample data from your CDR
   const bangladeshSampleData = [
@@ -70,34 +78,28 @@ const LacCellConverter = () => {
       mnc: "01", // Grameenphone
       lac: "5020",
       cid: "65522",
-      description: "Dhaka - Grameenphone (From CDR)",
-      area: "Gendaria, Dhaka",
     },
     {
       mcc: "470",
       mnc: "01",
       lac: "1182",
       cid: "63744",
-      description: "Dhaka - Grameenphone Cell",
-      area: "Shyampur, Dhaka",
-    },
-    {
-      mcc: "470",
-      mnc: "01",
-      lac: "5017",
-      cid: "29456",
-      description: "Dhaka - Mitford Road",
-      area: "Monwara Mansion, Dhaka",
-    },
-    {
-      mcc: "470",
-      mnc: "02",
-      lac: "12345",
-      cid: "67890",
-      description: "Sample - Robi",
-      area: "Sample area",
     },
   ];
+
+  // LAC to approximate area mapping from your CDR data
+  const lacAreaMapping = {
+    5017: "Mitford Road/Lalbagh Area, Dhaka",
+    1182: "Shyampur/Dania Area, Dhaka",
+    5020: "Gendaria/Postogola Area, Dhaka",
+    5019: "Gandaria/Sutrapur Area, Dhaka",
+    60301: "System Tower/SMS Center",
+    60331: "System Tower/SMS Center",
+    60371: "System Tower/SMS Center",
+    60321: "System Tower/SMS Center",
+    1203: "New Market/Shahbag Area, Dhaka",
+    1111: "Gulistan Area, Dhaka",
+  };
 
   useEffect(() => {
     // Update selected operator when MNC changes
@@ -105,8 +107,25 @@ const LacCellConverter = () => {
     if (operator) {
       setSelectedOperator(operator);
     }
+
+    // Check API keys on component mount
+    checkApiKeys();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.mnc]);
+
+  const checkApiKeys = () => {
+    const unwiredKey = import.meta.env.VITE_UNWIREDLABS_API_KEY;
+    const opencellidKey = import.meta.env.VITE_OPENCELLID_API_KEY;
+
+    setApiStatus({
+      unwiredlabs: !!(
+        unwiredKey && unwiredKey !== "your_unwiredlabs_api_key_here"
+      ),
+      opencellid: !!(
+        opencellidKey && opencellidKey !== "your_opencellid_api_key_here"
+      ),
+    });
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -123,47 +142,56 @@ const LacCellConverter = () => {
     }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setResult(null);
-    setMapUrl("");
-    setError("");
-
+  // Query Unwired Labs (UnwiredLocation) API
+  const queryUnwiredLabsAPI = async () => {
     try {
-      // Validate inputs
-      if (!formData.mcc || !formData.mnc || !formData.lac || !formData.cid) {
-        toast.error("Please fill in all fields");
-        setLoading(false);
-        return;
+      const apiKey = import.meta.env.VITE_UNWIREDLABS_API_KEY;
+
+      if (!apiKey || apiKey === "your_unwiredlabs_api_key_here") {
+        throw new Error("UnwiredLabs API key not configured");
       }
 
-      // Validate Bangladesh MCC
-      if (formData.mcc !== "470") {
-        toast.warning(
-          "MCC changed from Bangladesh (470). Make sure this is correct."
-        );
-      }
+      // Unwired Labs API endpoint
+      const response = await axios.post(
+        "https://us1.unwiredlabs.com/v2/process.php",
+        {
+          token: apiKey,
+          radio: "gsm",
+          mcc: parseInt(formData.mcc),
+          mnc: parseInt(formData.mnc),
+          cells: [
+            {
+              lac: parseInt(formData.lac),
+              cid: parseInt(formData.cid),
+            },
+          ],
+          address: 1, // Get address information
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+          timeout: 15000,
+        }
+      );
 
-      // Get API key from environment variable
+      console.log("UnwiredLabs API Response:", response.data);
+      return response.data;
+    } catch (error) {
+      console.error("UnwiredLabs API Error:", error);
+      throw error;
+    }
+  };
+
+  // Fallback: Try OpenCellID if UnwiredLabs fails
+  const queryOpenCellID = async () => {
+    try {
       const apiKey = import.meta.env.VITE_OPENCELLID_API_KEY;
 
-      if (!apiKey || apiKey === "your_api_key_here") {
-        toast.error(
-          "API key not configured. Please add your OpenCellID API key."
-        );
-        setLoading(false);
-        return;
+      if (!apiKey || apiKey === "your_opencellid_api_key_here") {
+        return null;
       }
 
-      console.log("Querying OpenCellID with:", {
-        mcc: parseInt(formData.mcc),
-        mnc: parseInt(formData.mnc),
-        lac: parseInt(formData.lac),
-        cellid: parseInt(formData.cid),
-      });
-
-      // Make API call to OpenCellID
       const response = await axios.get("https://opencellid.org/cell/get", {
         params: {
           key: apiKey,
@@ -173,69 +201,161 @@ const LacCellConverter = () => {
           cellid: parseInt(formData.cid),
           format: "json",
         },
-        timeout: 15000,
+        timeout: 10000,
       });
 
-      console.log("OpenCellID Response:", response.data);
+      console.log("OpenCellID Fallback Response:", response.data);
+      return response.data;
+    } catch (error) {
+      console.log("OpenCellID fallback failed:", error.message);
+      return null;
+    }
+  };
 
-      if (response.data && response.data.lat && response.data.lon) {
-        // Success - we have coordinates
-        const operator = bangladeshOperators.find(
-          (op) => op.mnc === formData.mnc
-        ) || { name: "Unknown Operator" };
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setResult(null);
+    setMapUrl("");
+    setError("");
+    setApiSource("UnwiredLabs");
 
+    try {
+      // Validate inputs
+      if (!formData.mcc || !formData.mnc || !formData.lac || !formData.cid) {
+        toast.error("Please fill in all fields");
+        setLoading(false);
+        return;
+      }
+
+      const operator = bangladeshOperators.find(
+        (op) => op.mnc === formData.mnc
+      ) || { name: "Unknown Operator" };
+
+      // Show loading toast
+      const loadingToast = toast.loading(`Locating ${operator.name} tower...`);
+
+      // First try Unwired Labs API
+      let apiResponse;
+      try {
+        apiResponse = await queryUnwiredLabsAPI();
+        console.log("UnwiredLabs Response:", apiResponse);
+      } catch (unwiredError) {
+        console.log("UnwiredLabs failed, trying OpenCellID...");
+        toast.loading("Trying alternative database...", { id: loadingToast });
+        apiResponse = await queryOpenCellID();
+        setApiSource("OpenCellID");
+      }
+
+      // Dismiss loading toast
+      toast.dismiss(loadingToast);
+
+      // Process API response
+      if (apiResponse && apiResponse.status === "ok") {
+        // Unwired Labs successful response
         setResult({
-          latitude: response.data.lat,
-          longitude: response.data.lon,
-          accuracy: response.data.accuracy || "Unknown",
-          range: response.data.range || "Unknown",
-          samples: response.data.samples || 0,
+          latitude: apiResponse.lat,
+          longitude: apiResponse.lon,
+          accuracy: apiResponse.accuracy
+            ? `${apiResponse.accuracy} meters`
+            : "Unknown",
+          address: apiResponse.address || "Not available",
+          balance: apiResponse.balance || 0,
           status: "success",
           network: `${formData.mcc}-${formData.mnc}`,
           cellId: `${formData.lac}-${formData.cid}`,
           operatorName: operator.name,
-          created: response.data.created || "Unknown",
-          updated: response.data.updated || "Unknown",
+          source: apiSource,
+          area: lacAreaMapping[formData.lac] || "Unknown area",
+          message: apiResponse.message || "Success",
         });
 
-        // Generate Google Maps URL
-        const url = `https://www.google.com/maps?q=${response.data.lat},${response.data.lon}&z=15`;
+        const url = `https://www.google.com/maps?q=${apiResponse.lat},${apiResponse.lon}&z=15`;
         setMapUrl(url);
 
-        toast.success(`Location found for ${operator.name}!`);
-      } else if (response.data?.error) {
-        // API returned an error
-        setError(response.data.error);
-        toast.error(`API Error: ${response.data.error}`);
+        toast.success(`Location found using ${apiSource}!`);
+      } else if (apiResponse && apiResponse.lat && apiResponse.lon) {
+        // OpenCellID successful response
+        setResult({
+          latitude: apiResponse.lat,
+          longitude: apiResponse.lon,
+          accuracy: apiResponse.accuracy
+            ? `${apiResponse.accuracy} meters`
+            : "Unknown",
+          address: "Not available from OpenCellID",
+          balance: "N/A",
+          status: "success",
+          network: `${formData.mcc}-${formData.mnc}`,
+          cellId: `${formData.lac}-${formData.cid}`,
+          operatorName: operator.name,
+          source: apiSource,
+          area: lacAreaMapping[formData.lac] || "Unknown area",
+          samples: apiResponse.samples || 0,
+          message: "Success",
+        });
+
+        const url = `https://www.google.com/maps?q=${apiResponse.lat},${apiResponse.lon}&z=15`;
+        setMapUrl(url);
+
+        toast.success(`Location found using ${apiSource}!`);
       } else {
         // No data found
-        setError(
-          "No location data found for this cell tower in OpenCellID database"
-        );
-        toast.error("Cell tower not found in database");
+        let errorMsg = "Cell tower not found in databases";
+
+        if (apiResponse?.message) {
+          errorMsg = apiResponse.message;
+        } else if (apiResponse?.error) {
+          errorMsg = apiResponse.error;
+        }
+
+        setError(errorMsg);
+
+        // Show approximate area from LAC mapping if available
+        if (lacAreaMapping[formData.lac]) {
+          setResult({
+            latitude: null,
+            longitude: null,
+            accuracy: "Area approximation only",
+            address: lacAreaMapping[formData.lac],
+            status: "approximate",
+            network: `${formData.mcc}-${formData.mnc}`,
+            cellId: `${formData.lac}-${formData.cid}`,
+            operatorName: operator.name,
+            source: "CDR Area Mapping",
+            area: lacAreaMapping[formData.lac],
+            note: "Exact coordinates not found. Showing approximate area from CDR data.",
+          });
+          toast(`Showing approximate area: ${lacAreaMapping[formData.lac]}`, {
+            icon: "⚠️",
+          });
+        } else {
+          toast.error("Cell tower not found in any database");
+        }
       }
     } catch (error) {
-      console.error("Error calling OpenCellID API:", error);
+      console.error("Error in handleSubmit:", error);
 
       let errorMessage = "Failed to fetch location data";
 
       if (error.response) {
-        if (error.response.status === 400) {
-          errorMessage = "Invalid request parameters";
-        } else if (error.response.status === 401) {
-          errorMessage = "Invalid or missing API key";
-        } else if (error.response.status === 404) {
-          errorMessage = "Cell tower not found in OpenCellID database";
-        } else if (error.response.status === 429) {
-          errorMessage = "API rate limit exceeded. Please wait and try again.";
+        if (error.response.status === 401) {
+          errorMessage =
+            "Invalid API key. Please check your UnwiredLabs API key.";
+        } else if (error.response.status === 402) {
+          errorMessage =
+            "Insufficient balance. Please top up your UnwiredLabs account.";
+        } else if (error.response.status === 403) {
+          errorMessage = "Access forbidden. Check your API permissions.";
+        } else if (error.response.data?.message) {
+          errorMessage = error.response.data.message;
         } else if (error.response.data?.error) {
           errorMessage = error.response.data.error;
         }
       } else if (error.request) {
         errorMessage =
           "No response from server. Check your internet connection.";
-      } else if (error.code === "ECONNABORTED") {
-        errorMessage = "Request timeout. Please try again.";
+      } else if (error.message) {
+        errorMessage = error.message;
       }
 
       setError(errorMessage);
@@ -246,6 +366,7 @@ const LacCellConverter = () => {
   };
 
   const copyToClipboard = (text) => {
+    if (!text) return;
     navigator.clipboard.writeText(text);
     setCopied(true);
     toast.success("Copied to clipboard!");
@@ -253,10 +374,11 @@ const LacCellConverter = () => {
   };
 
   const resetForm = () => {
-    setFormData({ mcc: "470", mnc: "01", lac: "", cid: "" });
+    setFormData({ mcc: "470", mnc: "", lac: "", cid: "" });
     setResult(null);
     setMapUrl("");
     setError("");
+    setApiSource("UnwiredLabs");
   };
 
   const loadSampleData = (sample) => {
@@ -270,45 +392,84 @@ const LacCellConverter = () => {
   };
 
   const openInBdMap = (lat, lon) => {
-    // Bangladeshi mapping services
+    if (!lat || !lon) return;
     const bdMapsUrl = `https://www.google.com/maps/@${lat},${lon},15z`;
     window.open(bdMapsUrl, "_blank");
   };
 
+  const openUnwiredLabsDashboard = () => {
+    window.open("https://my.unwiredlabs.com/dashboard", "_blank");
+  };
+
+  const testUnwiredLabsConnection = async () => {
+    try {
+      const apiKey = import.meta.env.VITE_UNWIREDLABS_API_KEY;
+
+      if (!apiKey || apiKey === "your_unwiredlabs_api_key_here") {
+        toast.error("UnwiredLabs API key not configured");
+        return;
+      }
+
+      toast.loading("Testing UnwiredLabs connection...");
+
+      // Test with a known cell (using sample data)
+      const testResponse = await axios.post(
+        "https://us1.unwiredlabs.com/v2/process.php",
+        {
+          token: apiKey,
+          radio: "gsm",
+          mcc: 470,
+          mnc: 1,
+          cells: [
+            {
+              lac: 5017,
+              cid: 29456,
+            },
+          ],
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+          timeout: 10000,
+        }
+      );
+
+      toast.dismiss();
+
+      if (testResponse.data.status === "ok") {
+        toast.success("UnwiredLabs API is working correctly!");
+        console.log("Test response:", testResponse.data);
+      } else {
+        toast.error(`API returned: ${testResponse.data.message}`);
+      }
+    } catch (error) {
+      toast.dismiss();
+      toast.error(`Connection test failed: ${error.message}`);
+    }
+  };
+
   return (
-    <div className="max-w-6xl mx-auto p-4">
+    <div className="mx-auto p-4">
       {/* Header with Bangladesh flag */}
       <div className="mb-8">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-8 h-8 bg-green-600 relative">
-            <div
-              className="absolute w-8 h-8 bg-green-600 rounded-full"
-              style={{ left: "12px" }}
-            ></div>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold text-gray-900">
+              Cell Tower Locator
+            </h1>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            Bangladesh Cell Tower Locator
-          </h1>
         </div>
         <p className="text-gray-600 mt-2">
           Convert LAC (Location Area Code) and Cell ID to geographic coordinates
-          for Bangladeshi mobile networks
         </p>
 
-        {/* Country Info */}
-        <div className="mt-3 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-          <FiGlobe className="mr-2" />
-          Country: Bangladesh (MCC: 470)
-        </div>
-
-        {/* API Key Status */}
-        <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 ml-2">
-          <FiAlertCircle className="mr-2" />
-          API Key:{" "}
-          {import.meta.env.VITE_OPENCELLID_API_KEY &&
-          import.meta.env.VITE_OPENCELLID_API_KEY !== "your_api_key_here"
-            ? "Configured"
-            : "Not configured"}
+        {/* Country and API Info */}
+        <div className="flex flex-wrap gap-2 mt-3">
+          <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+            <FiGlobe className="mr-2" />
+            Country: Bangladesh (MCC: 470)
+          </div>
         </div>
       </div>
 
@@ -379,25 +540,23 @@ const LacCellConverter = () => {
               Quick samples from CDR data (Grameenphone):
             </p>
             <div className="grid grid-cols-2 gap-2">
-              {bangladeshSampleData
-                .filter((sample) => sample.mnc === "01") // Show only Grameenphone samples
-                .map((sample, index) => (
-                  <motion.button
-                    key={index}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => loadSampleData(sample)}
-                    className="px-3 py-2 text-xs rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors text-left"
-                  >
-                    <div className="font-medium">{sample.description}</div>
-                    <div className="text-xs text-gray-500">
-                      LAC: {sample.lac} | CID: {sample.cid}
-                    </div>
-                    <div className="text-xs text-gray-400 truncate">
-                      {sample.area}
-                    </div>
-                  </motion.button>
-                ))}
+              {bangladeshSampleData.map((sample, index) => (
+                <motion.button
+                  key={index}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => loadSampleData(sample)}
+                  className="px-3 py-2 text-xs rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors text-left"
+                >
+                  <div className="font-medium">{sample.description}</div>
+                  <div className="text-xs text-gray-500">
+                    LAC: {sample.lac} | CID: {sample.cid}
+                  </div>
+                  <div className="text-xs text-gray-400 truncate">
+                    {sample.area}
+                  </div>
+                </motion.button>
+              ))}
             </div>
           </div>
 
@@ -465,9 +624,6 @@ const LacCellConverter = () => {
                   maxLength="5"
                   required
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  Location area identifier (from CDR)
-                </p>
               </div>
 
               {/* CID */}
@@ -486,7 +642,7 @@ const LacCellConverter = () => {
                   required
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Unique cell identifier (from CDR)
+                  Unique cell identifier
                 </p>
               </div>
 
@@ -496,16 +652,18 @@ const LacCellConverter = () => {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || !apiStatus.unwiredlabs}
                   className="flex-1 bg-indigo-600 text-white py-3 px-6 rounded-xl font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? (
                     <span className="flex items-center justify-center gap-2">
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      Querying OpenCellID...
+                      Querying {apiSource}...
                     </span>
+                  ) : !apiStatus.unwiredlabs ? (
+                    "Configure API Key First"
                   ) : (
-                    "📍 Locate Cell Tower"
+                    " Locate Cell Tower"
                   )}
                 </motion.button>
 
@@ -527,36 +685,19 @@ const LacCellConverter = () => {
             <div className="mt-6 p-4 bg-red-50 rounded-xl border border-red-200">
               <div className="flex items-center gap-2 text-red-800 mb-2">
                 <FiAlertCircle className="w-5 h-5" />
-                <span className="font-medium">Location Not Found</span>
+                <span className="font-medium">API Error</span>
               </div>
               <p className="text-sm text-red-700">{error}</p>
               <p className="text-xs text-red-600 mt-2">
-                Tips:
+                <span className="font-medium">Tips:</span>
                 <ul className="list-disc pl-5 mt-1 space-y-1">
-                  <li>Verify LAC and CID from CDR data</li>
-                  <li>
-                    Some cell towers may not be in the OpenCellID database
-                  </li>
+                  <li>Verify LAC and CID </li>
                   <li>Try different LAC/CID combinations</li>
-                  <li>Check operator MNC code (01 for Grameenphone)</li>
+                  <li>Make sure MNC is correct</li>
                 </ul>
               </p>
             </div>
           )}
-
-          {/* CDR Data Tips */}
-          <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
-            <h3 className="text-sm font-medium text-blue-800 mb-1">
-              📋 Using CDR Data (Call Detail Records)
-            </h3>
-            <ul className="text-xs text-blue-700 space-y-1">
-              <li>• LAC = "LAC ID" column in your CDR file</li>
-              <li>• Cell ID = "Cell ID" column in your CDR file</li>
-              <li>• MCC for Bangladesh is always 470</li>
-              <li>• MNC: 01 for Grameenphone (as shown in your data)</li>
-              <li>• Each row in CDR represents a call/SMS from a cell tower</li>
-            </ul>
-          </div>
         </motion.div>
 
         {/* Results Panel */}
@@ -585,7 +726,11 @@ const LacCellConverter = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="font-semibold">{result.operatorName}</h3>
-                    <p className="text-sm opacity-80">Cell Tower Located</p>
+                    <p className="text-sm opacity-80">
+                      {result.status === "success"
+                        ? "Cell Tower Located"
+                        : "Approximate Area"}
+                    </p>
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-mono">{result.network}</p>
@@ -596,134 +741,155 @@ const LacCellConverter = () => {
                 </div>
               </div>
 
-              {/* Coordinates */}
-              <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-5">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                  📍 Geographic Coordinates
-                </h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <p className="text-sm text-gray-600">Latitude</p>
-                    <div className="flex items-center justify-between bg-white p-3 rounded-lg border">
-                      <code className="text-lg font-mono font-bold text-gray-900">
-                        {parseFloat(result.latitude).toFixed(6)}
-                      </code>
+              {result.status === "success" ? (
+                <>
+                  {/* Coordinates */}
+                  <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-5">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                      Geographic Coordinates
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <p className="text-sm text-gray-600">Latitude</p>
+                        <div className="flex items-center justify-between bg-white p-3 rounded-lg border">
+                          <code className="text-lg font-mono font-bold text-gray-900">
+                            {parseFloat(result.latitude).toFixed(6)}
+                          </code>
+                          <button
+                            onClick={() =>
+                              copyToClipboard(result.latitude.toString())
+                            }
+                            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                            title="Copy latitude"
+                          >
+                            {copied ? (
+                              <FiCheck className="w-4 h-4 text-green-600" />
+                            ) : (
+                              <FiCopy className="w-4 h-4 text-gray-500" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-sm text-gray-600">Longitude</p>
+                        <div className="flex items-center justify-between bg-white p-3 rounded-lg border">
+                          <code className="text-lg font-mono font-bold text-gray-900">
+                            {parseFloat(result.longitude).toFixed(6)}
+                          </code>
+                          <button
+                            onClick={() =>
+                              copyToClipboard(result.longitude.toString())
+                            }
+                            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                            title="Copy longitude"
+                          >
+                            {copied ? (
+                              <FiCheck className="w-4 h-4 text-green-600" />
+                            ) : (
+                              <FiCopy className="w-4 h-4 text-gray-500" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Copy Both Button */}
+                    <div className="mt-4">
                       <button
                         onClick={() =>
-                          copyToClipboard(result.latitude.toString())
+                          copyToClipboard(
+                            `${result.latitude}, ${result.longitude}`
+                          )
                         }
-                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                        title="Copy latitude"
+                        className="w-full py-2.5 text-sm font-medium rounded-lg bg-gray-800 text-white hover:bg-gray-900 transition-colors"
                       >
-                        {copied ? (
-                          <FiCheck className="w-4 h-4 text-green-600" />
-                        ) : (
-                          <FiCopy className="w-4 h-4 text-gray-500" />
-                        )}
+                        Copy Both Coordinates
                       </button>
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <p className="text-sm text-gray-600">Longitude</p>
-                    <div className="flex items-center justify-between bg-white p-3 rounded-lg border">
-                      <code className="text-lg font-mono font-bold text-gray-900">
-                        {parseFloat(result.longitude).toFixed(6)}
-                      </code>
-                      <button
-                        onClick={() =>
-                          copyToClipboard(result.longitude.toString())
-                        }
-                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                        title="Copy longitude"
-                      >
-                        {copied ? (
-                          <FiCheck className="w-4 h-4 text-green-600" />
-                        ) : (
-                          <FiCopy className="w-4 h-4 text-gray-500" />
-                        )}
-                      </button>
+
+                  {/* Additional Info */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                      <p className="text-sm text-blue-600">Accuracy</p>
+                      <p className="text-lg font-semibold text-blue-800">
+                        {result.accuracy}
+                      </p>
+                    </div>
+
+                    {result.balance && typeof result.balance === "number" && (
+                      <div className="bg-green-50 p-4 rounded-xl border border-green-100">
+                        <p className="text-sm text-green-600">API Balance</p>
+                        <p className="text-lg font-semibold text-green-800">
+                          {result.balance.toLocaleString()} credits
+                        </p>
+                      </div>
+                    )}
+                    <div className="bg-green-50 p-4 rounded-xl border border-green-100">
+                      <p className="text-sm text-green-600">Status</p>
+                      <p className="text-lg font-semibold text-green-600">
+                        Located ✓
+                      </p>
                     </div>
                   </div>
-                </div>
 
-                {/* Copy Both Button */}
-                <div className="mt-4">
-                  <button
-                    onClick={() =>
-                      copyToClipboard(`${result.latitude}, ${result.longitude}`)
-                    }
-                    className="w-full py-2.5 text-sm font-medium rounded-lg bg-gray-800 text-white hover:bg-gray-900 transition-colors"
-                  >
-                    📋 Copy Both Coordinates
-                  </button>
-                </div>
-              </div>
+                  {/* Address Information */}
+                  {result.address && result.address !== "Not available" && (
+                    <div className="bg-yellow-50 p-4 rounded-xl border border-yellow-100">
+                      <h4 className="font-medium text-yellow-800 mb-2">
+                        Address
+                      </h4>
+                      <p className="text-sm text-yellow-700">
+                        {result.address}
+                      </p>
+                    </div>
+                  )}
 
-              {/* Additional Info */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-                  <p className="text-sm text-blue-600">Accuracy</p>
-                  <p className="text-lg font-semibold text-blue-800">
-                    {result.accuracy === "Unknown"
-                      ? result.accuracy
-                      : `${result.accuracy} meters`}
-                  </p>
-                </div>
-                <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-                  <p className="text-sm text-blue-600">Samples in DB</p>
-                  <p className="text-lg font-semibold text-blue-800">
-                    {result.samples}
-                  </p>
-                  <p className="text-xs text-blue-600 mt-1">
-                    {result.samples > 100
-                      ? "Good coverage"
-                      : result.samples > 10
-                      ? "Moderate coverage"
-                      : "Limited data"}
-                  </p>
-                </div>
-                <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-                  <p className="text-sm text-blue-600">Cell Range</p>
-                  <p className="text-lg font-semibold text-blue-800">
-                    {result.range === "Unknown"
-                      ? result.range
-                      : `${result.range} meters`}
-                  </p>
-                </div>
-                <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-                  <p className="text-sm text-blue-600">Status</p>
-                  <p className="text-lg font-semibold text-green-600">
-                    Located ✓
-                  </p>
-                </div>
-              </div>
-
-              {/* Map Actions */}
-              {mapUrl && (
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <a
-                      href={mapUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block bg-red-600 text-white py-3 px-4 rounded-xl font-medium hover:bg-red-700 transition-colors text-center"
-                    >
-                      🗺️ Google Maps
-                    </a>
-                    <button
-                      onClick={() =>
-                        openInBdMap(result.latitude, result.longitude)
-                      }
-                      className="bg-green-600 text-white py-3 px-4 rounded-xl font-medium hover:bg-green-700 transition-colors text-center"
-                    >
-                      🇧🇩 Open Map
-                    </button>
-                  </div>
-
-                  <div className="text-center">
-                    <p className="text-sm text-gray-600">
-                      Use these coordinates for investigation or mapping
+                  {/* Map Actions */}
+                  {result.latitude && result.longitude && (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-1 gap-3">
+                        <a
+                          href={`https://www.google.com/maps?q=${result.latitude},${result.longitude}&z=15`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block bg-red-600 text-white py-3 px-4 rounded-xl font-medium hover:bg-red-700 transition-colors text-center"
+                        >
+                          🗺️ Google Maps
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                /* Approximate Location Display */
+                <div className="space-y-4">
+                  <div className="bg-yellow-50 p-4 rounded-xl border border-yellow-100">
+                    <h3 className="font-semibold text-yellow-800 mb-2">
+                      ⚠️ Approximate Location Only
+                    </h3>
+                    <p className="text-sm text-yellow-700 mb-3">
+                      {result.note || "Exact coordinates not found "}
                     </p>
+                    <div className="bg-white p-3 rounded-lg border">
+                      <h4 className="font-medium text-gray-900 mb-1">
+                        Approximate Area:
+                      </h4>
+                      <p className="text-lg font-semibold text-gray-800">
+                        {result.area || result.address}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="bg-blue-50 p-4 rounded-xl">
+                    <h4 className="font-medium text-blue-800 mb-2">
+                      Why approximate?
+                    </h4>
+                    <ul className="text-sm text-blue-700 space-y-1">
+                      <li>• This specific cell tower is not in the database</li>
+                      <li>• The LAC area is known from CDR address patterns</li>
+                      <li>• Try neighboring cell IDs for exact location</li>
+                    </ul>
                   </div>
                 </div>
               )}
@@ -748,12 +914,6 @@ const LacCellConverter = () => {
                   <div>
                     Cell ID: <span className="font-medium">{formData.cid}</span>
                   </div>
-                  {result.created !== "Unknown" && (
-                    <div className="col-span-2">
-                      First sample:{" "}
-                      <span className="font-medium">{result.created}</span>
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
@@ -766,127 +926,15 @@ const LacCellConverter = () => {
                 No location data yet
               </h3>
               <p className="text-gray-600 max-w-sm mx-auto mb-4">
-                Enter LAC and Cell ID from CDR data to locate the cell tower
-              </p>
-
-              {/* Example from CDR */}
-              <div className="bg-gray-50 p-4 rounded-xl max-w-sm mx-auto">
-                <h4 className="text-sm font-medium text-gray-900 mb-2">
-                  Example from your CDR:
-                </h4>
-                <div className="text-xs text-gray-600 space-y-1">
-                  <div className="flex justify-between">
-                    <span>LAC ID:</span>
-                    <code className="font-mono">5020</code>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Cell ID:</span>
-                    <code className="font-mono">65522</code>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Operator:</span>
-                    <code className="font-mono">Grameenphone (01)</code>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Address in CDR:</span>
-                    <span className="text-right">Gendaria, Dhaka</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* API Integration Note */}
-          {!result && !error && (
-            <div className="mt-8 p-4 bg-yellow-50 rounded-xl border border-yellow-200">
-              <h3 className="text-sm font-medium text-yellow-800 mb-1">
-                ⚠️ Required: OpenCellID API Key
-              </h3>
-              <p className="text-xs text-yellow-700">
-                To locate Bangladeshi cell towers, you need an OpenCellID API
-                key:
-              </p>
-              <ol className="text-xs text-yellow-700 mt-2 space-y-1 list-decimal pl-4">
-                <li>
-                  Get free API key from{" "}
-                  <a
-                    href="https://opencellid.org/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline font-medium"
-                  >
-                    opencellid.org
-                  </a>
-                </li>
-                <li>
-                  Create <code>.env.local</code> file in project root
-                </li>
-                <li>
-                  Add: <code>VITE_OPENCELLID_API_KEY=your_key_here</code>
-                </li>
-                <li>Restart development server</li>
-              </ol>
-              <p className="text-xs text-yellow-700 mt-2">
-                Note: OpenCellID has limited coverage in Bangladesh. Some cell
-                towers may not be in the database.
+                {!apiStatus.unwiredlabs ? (
+                  <>Fix the error locate cell towers</>
+                ) : (
+                  "Enter LAC and Cell ID  to locate the cell tower"
+                )}
               </p>
             </div>
           )}
         </motion.div>
-      </div>
-
-      {/* Bottom Info Section - Bangladesh Specific */}
-      <div className="mt-8 bg-gradient-to-r from-green-50 to-blue-50 rounded-2xl p-6 border border-green-100">
-        <h3 className="text-lg font-semibold text-gray-900 mb-3">
-          🇧🇩 Bangladesh Mobile Network Information
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="space-y-2">
-            <h4 className="font-medium text-gray-900">MCC for Bangladesh</h4>
-            <p className="text-sm text-gray-700">
-              All mobile operators in Bangladesh use MCC:{" "}
-              <code className="bg-gray-100 px-1 rounded">470</code>
-            </p>
-          </div>
-          <div className="space-y-2">
-            <h4 className="font-medium text-gray-900">Major Operators</h4>
-            <div className="text-sm text-gray-700 space-y-1">
-              <div className="flex justify-between">
-                <span>Grameenphone:</span>
-                <code className="font-mono">MNC 01</code>
-              </div>
-              <div className="flex justify-between">
-                <span>Robi:</span>
-                <code className="font-mono">MNC 02</code>
-              </div>
-              <div className="flex justify-between">
-                <span>Banglalink:</span>
-                <code className="font-mono">MNC 03</code>
-              </div>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <h4 className="font-medium text-gray-900">CDR Data Structure</h4>
-            <p className="text-sm text-gray-700">
-              Your CDR shows LAC in "LAC ID" column and Cell ID in "Cell ID"
-              column. All records show operator as "GRAMEENPHONE" (MNC: 01).
-            </p>
-          </div>
-        </div>
-
-        {/* CDR Data Tips */}
-        <div className="mt-4 p-4 bg-white rounded-xl border">
-          <h4 className="font-medium text-gray-900 mb-2">
-            📊 How to use with your CDR data:
-          </h4>
-          <ol className="text-sm text-gray-700 space-y-2 list-decimal pl-5">
-            <li>Find "LAC ID" and "Cell ID" from any row in your Excel file</li>
-            <li>Set MNC to "01" for Grameenphone (all your records)</li>
-            <li>MCC is automatically set to 470 for Bangladesh</li>
-            <li>Click "Locate Cell Tower" to find the geographic location</li>
-            <li>Use results for investigation, mapping, or analysis</li>
-          </ol>
-        </div>
       </div>
     </div>
   );
