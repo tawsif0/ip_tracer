@@ -7,7 +7,7 @@ const authRoutes = require("./routes/authRoutes");
 const linkRoutes = require("./routes/linkRoutes");
 const statsRoutes = require("./routes/statsRoutes");
 const errorHandler = require("./middlewares/errorHandler");
-
+const domainRoutes = require("./routes/domainRoutes");
 const app = express();
 
 // Enhanced CORS Configuration
@@ -82,8 +82,6 @@ const corsOptions = {
   maxAge: 86400, // 24 hours in seconds
 };
 
-// Security middleware - ORDER MATTERS!
-// 1. First apply CORS
 app.use(cors(corsOptions));
 
 // 2. Handle preflight requests explicitly
@@ -112,25 +110,6 @@ app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: process.env.NODE_ENV === "production" ? 100 : 1000, // More lenient in development
-  message: {
-    status: 429,
-    message: "Too many requests from this IP, please try again later.",
-  },
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-  skip: (req) => {
-    // Skip rate limiting for certain paths (like health checks)
-    return req.path === "/api/health";
-  },
-});
-
-// Apply rate limiting to all routes except health check
-app.use("/api", limiter);
-
 // Health check route (outside rate limiting)
 app.get("/api/health", (req, res) => {
   res.status(200).json({
@@ -149,7 +128,7 @@ app.get("/api/health", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/links", linkRoutes);
 app.use("/api/stats", statsRoutes);
-
+app.use("/api/domains", domainRoutes);
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({

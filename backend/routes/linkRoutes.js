@@ -16,7 +16,4 @@ router.post("/:shortCode", ipDetection, linkController.redirectLink);
 // Destination route (for getting URL without tracking)
 router.get("/:shortCode/destination", linkController.getLinkDestination);
 
-// Photo serving route
-// router.get("/photos/:filename", linkController.servePhoto);
-
 module.exports = router;

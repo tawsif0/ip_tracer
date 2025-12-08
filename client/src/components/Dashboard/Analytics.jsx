@@ -1,35 +1,24 @@
+/* eslint-disable no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import {
   FiRefreshCw,
   FiGlobe,
-  FiSmartphone,
-  FiBarChart2,
   FiUsers,
   FiEye,
   FiCamera,
   FiMapPin,
   FiLink,
-  FiCalendar,
   FiClock,
   FiMousePointer,
   FiInfo,
   FiDownload,
   FiFileText,
+  FiEyeOff,
 } from "react-icons/fi";
 import { format } from "date-fns";
-
-const COLORS = [
-  "#6366F1", // Indigo
-  "#10B981", // Emerald
-  "#F59E0B", // Amber
-  "#EF4444", // Red
-  "#8B5CF6", // Violet
-  "#06B6D4", // Cyan
-  "#F97316", // Orange
-  "#EC4899", // Pink
-];
+import { motion } from "framer-motion";
 
 // Enhanced IP API Component
 const IPApiDetails = ({ ip }) => {
@@ -2333,7 +2322,7 @@ const IPDRRequestModal = ({ links, onClose, visitLogs }) => {
   );
 };
 // Main Analytics Component
-const Analytics = ({ stats, links }) => {
+const Analytics = ({ stats, links, permissions = {} }) => {
   const [selectedLinkId, setSelectedLinkId] = useState(null);
   const [visitLogs, setVisitLogs] = useState([]);
   const [allVisitLogs, setAllVisitLogs] = useState([]);
@@ -2363,7 +2352,7 @@ const Analytics = ({ stats, links }) => {
 
     try {
       const res = await axios.get(
-        `https://api.cleanpc.xyz/api/stats/visits/${linkId}`,
+        `http://localhost:5000/api/stats/visits/${linkId}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -2388,7 +2377,7 @@ const Analytics = ({ stats, links }) => {
         for (const link of links) {
           try {
             const res = await axios.get(
-              `https://api.cleanpc.xyz/api/stats/visits/${link._id}`,
+              `http://localhost:5000/api/stats/visits/${link._id}`,
               {
                 headers: {
                   Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -2466,23 +2455,29 @@ const Analytics = ({ stats, links }) => {
     <div className="space-y-8">
       {/* Control Buttons */}
       <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-end items-stretch sm:items-center">
-        <button
-          onClick={() => setShowIPDRModal(true)}
-          disabled={loadingAllLogs || !links || links.length === 0}
-          className="flex items-center justify-center sm:justify-start space-x-2 w-full sm:w-auto bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-2xl px-4 sm:px-6 py-3.5 sm:py-4 border border-blue-200 shadow-sm hover:from-blue-700 hover:to-cyan-700 transition-all duration-200 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
-        >
-          <FiFileText className="w-5 h-5 flex-shrink-0" />
-          <span>{loadingAllLogs ? "Loading..." : "IPDR Request"}</span>
-        </button>
+        {/* IPDR Request Button - Only show if user has permission */}
+        {permissions?.ipdrRequest && (
+          <button
+            onClick={() => setShowIPDRModal(true)}
+            disabled={loadingAllLogs || !links || links.length === 0}
+            className="flex items-center justify-center sm:justify-start space-x-2 w-full sm:w-auto bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-2xl px-4 sm:px-6 py-3.5 sm:py-4 border border-blue-200 shadow-sm hover:from-blue-700 hover:to-cyan-700 transition-all duration-200 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+          >
+            <FiFileText className="w-5 h-5 flex-shrink-0" />
+            <span>{loadingAllLogs ? "Loading..." : "IPDR Request"}</span>
+          </button>
+        )}
 
-        <button
-          onClick={handleCSVModalOpen}
-          disabled={loadingAllLogs || !links || links.length === 0}
-          className="flex items-center justify-center sm:justify-start space-x-2 w-full sm:w-auto bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-2xl px-4 sm:px-6 py-3.5 sm:py-4 border border-green-200 shadow-sm hover:from-green-700 hover:to-emerald-700 transition-all duration-200 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
-        >
-          <FiDownload className="w-5 h-5 flex-shrink-0" />
-          <span>{loadingAllLogs ? "Loading..." : "CSV File"}</span>
-        </button>
+        {/* CSV Download Button - Only show if user has permission */}
+        {permissions?.csvDownload && (
+          <button
+            onClick={handleCSVModalOpen}
+            disabled={loadingAllLogs || !links || links.length === 0}
+            className="flex items-center justify-center sm:justify-start space-x-2 w-full sm:w-auto bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-2xl px-4 sm:px-6 py-3.5 sm:py-4 border border-green-200 shadow-sm hover:from-green-700 hover:to-emerald-700 transition-all duration-200 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+          >
+            <FiDownload className="w-5 h-5 flex-shrink-0" />
+            <span>{loadingAllLogs ? "Loading..." : "CSV File"}</span>
+          </button>
+        )}
 
         <button
           onClick={handleRefresh}
@@ -2642,110 +2637,194 @@ const Analytics = ({ stats, links }) => {
               </div>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto rounded-2xl border border-gray-200 shadow-sm bg-white">
               <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+                <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
                   <tr>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider font-mono">
                       Time
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider font-mono">
                       IP Address
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Device
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                      Media
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                    {(permissions?.locationAccess ||
+                      permissions?.cameraAccess) && (
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                        Media
+                      </th>
+                    )}
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider font-mono">
                       Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {visitLogs.map((visit) => (
+                <tbody className="divide-y divide-gray-100 bg-gradient-to-b from-white to-gray-50/50">
+                  {visitLogs.map((visit, index) => (
                     <tr
                       key={visit._id}
-                      className="hover:bg-gray-50 transition-colors duration-150"
+                      className={`transition-all duration-200 hover:bg-gradient-to-r hover:from-indigo-50/50 hover:to-purple-50/30 hover:shadow-sm hover:border-indigo-100/50 border-b border-gray-50/50 ${
+                        index % 2 === 0 ? "bg-white/80" : "bg-gray-50/50"
+                      }`}
                     >
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">
-                          {format(new Date(visit.timestamp), "MMM dd, yyyy")}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {format(new Date(visit.timestamp), "h:mm:ss a")}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="font-mono font-medium text-gray-900">
-                          {visit.publicIp}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div>
-                          <div className="font-medium text-gray-900 capitalize">
-                            {visit.device?.type || "Unknown"}
+                      {/* Time Column */}
+                      <td className="px-6 py-5 whitespace-nowrap">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-2 h-2 bg-gradient-to-r from-indigo-400 to-purple-400 rounded-full animate-pulse"></div>
+                          <div>
+                            <div className="text-sm font-semibold text-gray-900 group-hover:text-indigo-900">
+                              {format(
+                                new Date(visit.timestamp),
+                                "MMM dd, yyyy"
+                              )}
+                            </div>
+                            <div className="text-xs font-mono text-gray-500">
+                              {format(new Date(visit.timestamp), "h:mm:ss a")}
+                            </div>
                           </div>
-                          <div className="text-xs text-gray-500 space-x-2">
-                            <span>{visit.device?.os || "N/A"}</span>
-                            <span>•</span>
+                        </div>
+                      </td>
+
+                      {/* IP Address Column */}
+                      <td className="px-6 py-5 whitespace-nowrap">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-1.5 h-1.5 bg-gray-400 rounded-full"></div>
+                          <div className="font-mono text-sm font-semibold text-gray-900 bg-gray-100/50 px-2 py-0.5 rounded-lg border border-gray-200">
+                            {visit.publicIp}
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Device Column */}
+                      <td className="px-6 py-5">
+                        <div className="space-y-1">
+                          <div className="flex items-center space-x-2">
+                            <div
+                              className={`w-2 h-2 rounded-full ${
+                                visit.device?.type === "mobile"
+                                  ? "bg-emerald-400"
+                                  : visit.device?.type === "desktop"
+                                  ? "bg-indigo-400"
+                                  : visit.device?.type === "tablet"
+                                  ? "bg-purple-400"
+                                  : "bg-gray-400"
+                              }`}
+                            ></div>
+                            <span className="font-semibold text-sm text-gray-900 capitalize">
+                              {visit.device?.type || "Unknown"}
+                            </span>
+                          </div>
+                          <div className="flex items-center text-xs text-gray-500 space-x-2">
+                            <span className="font-mono">
+                              {visit.device?.os || "N/A"}
+                            </span>
+                            <span className="text-gray-300">•</span>
                             <span>{visit.device?.browser || "N/A"}</span>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="flex space-x-2">
-                          {visit.hasPhoto && (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
-                              <FiCamera className="w-3 h-3 mr-1" />
-                              Photo
-                            </span>
-                          )}
-                          {visit.hasLocation && (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
-                              <FiMapPin className="w-3 h-3 mr-1" />
-                              Location
-                            </span>
-                          )}
-                          {!visit.hasPhoto && !visit.hasLocation && (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200">
-                              No Media
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
+
+                      {/* Media Column - Only shows if ANY media permission exists */}
+                      {(permissions?.locationAccess ||
+                        permissions?.cameraAccess) && (
+                        <td className="px-6 py-5">
+                          <div className="flex items-center space-x-2">
+                            {visit.hasPhoto && permissions?.cameraAccess ? (
+                              <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-gradient-to-r from-green-100 to-green-200 text-green-800 border border-green-200 shadow-sm">
+                                <FiCamera className="w-3.5 h-3.5 mr-1" />
+                                Photo
+                              </span>
+                            ) : visit.hasLocation &&
+                              permissions?.locationAccess ? (
+                              <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 border border-blue-200 shadow-sm">
+                                <FiMapPin className="w-3.5 h-3.5 mr-1" />
+                                Location
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 border border-gray-200 shadow-sm">
+                                <FiEyeOff className="w-3.5 h-3.5 mr-1" />
+                                No Media
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                      )}
+
+                      {/* Actions Column */}
+                      <td className="px-6 py-5">
                         <div className="flex flex-wrap gap-2">
-                          <button
+                          {/* Always show IP Check */}
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
                             onClick={() => handleCheckIp(visit.publicIp)}
-                            className="inline-flex items-center px-3 py-2 border border-transparent text-xs font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                            className="inline-flex items-center px-3.5 py-2 text-xs font-semibold rounded-xl text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-sm hover:shadow-md border border-transparent"
                           >
-                            <FiEye className="h-3 w-3 mr-1" />
+                            <FiEye className="h-3.5 w-3.5 mr-1" />
                             Check IP
-                          </button>
-                          {visit.hasPhoto && (
-                            <button
+                          </motion.button>
+
+                          {/* Photo button - conditional */}
+                          {visit.hasPhoto && permissions?.cameraAccess && (
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
                               onClick={() => handleViewPhoto(visit.photo)}
-                              className="inline-flex items-center px-3 py-2 border border-transparent text-xs font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                              className="inline-flex items-center px-3.5 py-2 text-xs font-semibold rounded-xl text-white bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200 shadow-sm hover:shadow-md border border-transparent"
                             >
-                              <FiCamera className="h-3 w-3 mr-1" />
-                              View Photo
-                            </button>
+                              <FiCamera className="h-3.5 w-3.5 mr-1" />
+                              Photo
+                            </motion.button>
                           )}
-                          {visit.hasLocation && (
-                            <button
+
+                          {/* Location button - conditional */}
+                          {visit.hasLocation && permissions?.locationAccess && (
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
                               onClick={() => handleViewLocation(visit.location)}
-                              className="inline-flex items-center px-3 py-2 border border-transparent text-xs font-medium rounded-lg text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                              className="inline-flex items-center px-3.5 py-2 text-xs font-semibold rounded-xl text-white bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all duration-200 shadow-sm hover:shadow-md border border-transparent"
                             >
-                              <FiMapPin className="h-3 w-3 mr-1" />
-                              See Location
-                            </button>
+                              <FiMapPin className="h-3.5 w-3.5 mr-1" />
+                              Location
+                            </motion.button>
                           )}
                         </div>
                       </td>
                     </tr>
                   ))}
+
+                  {/* Empty State */}
+                  {visitLogs.length === 0 && (
+                    <tr>
+                      <td
+                        colSpan={
+                          permissions?.locationAccess ||
+                          permissions?.cameraAccess
+                            ? 5
+                            : 4
+                        }
+                        className="px-6 py-12 text-center"
+                      >
+                        <div className="flex flex-col items-center space-y-4">
+                          <div className="w-16 h-16 bg-gradient-to-r from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center">
+                            <FiActivity className="w-8 h-8 text-gray-400" />
+                          </div>
+                          <div className="text-center">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                              No visits yet
+                            </h3>
+                            <p className="text-sm text-gray-500 max-w-sm">
+                              Your link hasn't received any visits. Share it to
+                              start tracking activity.
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>

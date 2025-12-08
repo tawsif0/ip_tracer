@@ -31,6 +31,10 @@ const linkSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  updatedAt: {
+    type: Date,
+    default: Date.now,
+  },
   isActive: {
     type: Boolean,
     default: true,
@@ -39,6 +43,12 @@ const linkSchema = new mongoose.Schema({
     title: String,
     description: String,
   },
+});
+
+// Add pre-save middleware to update updatedAt
+linkSchema.pre("save", function (next) {
+  this.updatedAt = Date.now();
+  next();
 });
 
 module.exports = mongoose.model("Link", linkSchema);

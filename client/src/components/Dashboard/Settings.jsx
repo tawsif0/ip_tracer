@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { useAuth } from "../../hooks/useAuth";
+import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline"; // Import eye icons
 
 const Settings = ({ user }) => {
   const {
@@ -14,7 +15,6 @@ const Settings = ({ user }) => {
     defaultValues: {
       name: user?.name || "",
       email: user?.email || "",
-      domains: user?.domains?.join(", ") || "",
     },
   });
 
@@ -27,27 +27,20 @@ const Settings = ({ user }) => {
 
   const [isLoading, setIsLoading] = useState(false);
   const [isPasswordLoading, setIsPasswordLoading] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
   const { logout } = useAuth();
 
   const onSubmitProfile = async (data) => {
     setIsLoading(true);
     try {
-      // Process domains - if empty string, set to empty array
-      const domainsArray = data.domains
-        ? data.domains
-            .split(",")
-            .map((domain) => domain.trim())
-            .filter((domain) => domain.length > 0)
-        : [];
-
       const updatedData = {
-        ...data,
-        domains: domainsArray,
+        name: data.name,
+        email: data.email,
       };
 
-      // Use the correct endpoint
       const response = await axios.put(
-        "https://api.cleanpc.xyz/api/auth/profile",
+        "http://localhost:5000/api/auth/profile",
         updatedData,
         {
           headers: {
@@ -56,13 +49,10 @@ const Settings = ({ user }) => {
         }
       );
 
-      // Update local storage with new user data
       const updatedUser = response.data;
       localStorage.setItem("user", JSON.stringify(updatedUser));
 
       toast.success("Profile updated successfully!");
-
-      // Reload the page to reflect changes in the app
       window.location.reload();
     } catch (error) {
       toast.error(error.response?.data?.error || "Failed to update profile");
@@ -74,15 +64,11 @@ const Settings = ({ user }) => {
   const onSubmitPassword = async (data) => {
     setIsPasswordLoading(true);
     try {
-      await axios.put(
-        "https://api.cleanpc.xyz/api/auth/change-password",
-        data,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
+      await axios.put("http://localhost:5000/api/auth/change-password", data, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
 
       toast.success("Password changed successfully! Please login again.");
       resetPasswordForm();
@@ -147,25 +133,6 @@ const Settings = ({ user }) => {
                 </p>
               )}
             </div>
-
-            <div className="sm:col-span-6">
-              <label
-                htmlFor="domains"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Your Domains (comma separated)
-              </label>
-              <input
-                type="text"
-                id="domains"
-                {...registerProfile("domains")} // Removed required validation
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                placeholder="example1.com, example2.com (optional)"
-              />
-              <p className="mt-1 text-sm text-gray-500">
-                Optional: Add your domains separated by commas
-              </p>
-            </div>
           </div>
 
           <div className="mt-6 flex justify-end">
@@ -184,6 +151,7 @@ const Settings = ({ user }) => {
         <h3 className="text-lg font-medium mb-6">Change Password</h3>
         <form onSubmit={handleSubmitPassword(onSubmitPassword)}>
           <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+            {/* Current Password with Eye Icon */}
             <div className="sm:col-span-3">
               <label
                 htmlFor="currentPassword"
@@ -191,14 +159,27 @@ const Settings = ({ user }) => {
               >
                 Current Password
               </label>
-              <input
-                type="password"
-                id="currentPassword"
-                {...registerPassword("currentPassword", {
-                  required: "Current password is required",
-                })}
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-              />
+              <div className="relative mt-1">
+                <input
+                  type={showCurrentPassword ? "text" : "password"}
+                  id="currentPassword"
+                  {...registerPassword("currentPassword", {
+                    required: "Current password is required",
+                  })}
+                  className="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 pr-10 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                />
+                <button
+                  type="button"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                >
+                  {showCurrentPassword ? (
+                    <EyeSlashIcon className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                  ) : (
+                    <EyeIcon className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                  )}
+                </button>
+              </div>
               {passwordErrors.currentPassword && (
                 <p className="mt-1 text-sm text-red-600">
                   {passwordErrors.currentPassword.message}
@@ -206,6 +187,7 @@ const Settings = ({ user }) => {
               )}
             </div>
 
+            {/* New Password with Eye Icon */}
             <div className="sm:col-span-3">
               <label
                 htmlFor="newPassword"
@@ -213,18 +195,31 @@ const Settings = ({ user }) => {
               >
                 New Password
               </label>
-              <input
-                type="password"
-                id="newPassword"
-                {...registerPassword("newPassword", {
-                  required: "New password is required",
-                  minLength: {
-                    value: 8,
-                    message: "Password must be at least 8 characters",
-                  },
-                })}
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-              />
+              <div className="relative mt-1">
+                <input
+                  type={showNewPassword ? "text" : "password"}
+                  id="newPassword"
+                  {...registerPassword("newPassword", {
+                    required: "New password is required",
+                    minLength: {
+                      value: 8,
+                      message: "Password must be at least 8 characters",
+                    },
+                  })}
+                  className="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 pr-10 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                />
+                <button
+                  type="button"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                >
+                  {showNewPassword ? (
+                    <EyeSlashIcon className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                  ) : (
+                    <EyeIcon className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                  )}
+                </button>
+              </div>
               {passwordErrors.newPassword && (
                 <p className="mt-1 text-sm text-red-600">
                   {passwordErrors.newPassword.message}

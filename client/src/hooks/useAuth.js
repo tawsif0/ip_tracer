@@ -40,11 +40,9 @@ export const AuthProvider = ({ children }) => {
   const logout = useCallback(() => {
     localStorage.removeItem("user");
     localStorage.removeItem("token");
-    localStorage.removeItem("rememberMe");
-    localStorage.removeItem("rememberedEmail");
+    localStorage.removeItem("dashboardActiveTab"); // Add this line
     setUser(null);
   }, []);
-
   const value = {
     user,
     login,

@@ -3,24 +3,28 @@ import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
-import { toast } from "react-toastify";
+import toast from "react-hot-toast";
 import { motion } from "framer-motion";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 import { useAuth } from "../hooks/useAuth";
+
 const AuthForm = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const navigate = useNavigate();
   const { login } = useAuth();
+
   const {
     register,
     handleSubmit,
     formState: { errors },
     reset,
     setValue,
+    getValues,
   } = useForm();
 
   // Load saved credentials if "Remember Me" was checked
@@ -36,12 +40,24 @@ const AuthForm = () => {
 
   const onSubmit = async (data) => {
     setIsLoading(true);
-    try {
-      const endpoint = isLogin
-        ? "https://api.cleanpc.xyz/api/auth/login"
-        : "https://api.cleanpc.xyz/api/auth/register";
 
-      const response = await axios.post(endpoint, data);
+    if (isLogin) {
+      // Handle login
+      await handleLogin(data);
+    } else {
+      // Handle registration
+      await handleRegistration(data);
+    }
+
+    setIsLoading(false);
+  };
+
+  const handleLogin = async (data) => {
+    try {
+      const response = await axios.post(
+        "http://localhost:5000/api/auth/login",
+        data
+      );
 
       // Save email if "Remember Me" is checked
       if (rememberMe) {
@@ -55,15 +71,69 @@ const AuthForm = () => {
       // Use the login function from useAuth to update the state
       login(response.data.user, response.data.token);
 
+      toast.success("Successfully logged in!");
       navigate("/dashboard");
-      toast.success(`Successfully ${isLogin ? "logged in" : "registered"}!`);
     } catch (error) {
-      toast.error(
-        error.response?.data?.error ||
-          `Failed to ${isLogin ? "login" : "register"}`
+      const errorMessage =
+        error.response?.data?.error || "Invalid login credentials";
+      toast.error(errorMessage);
+    }
+  };
+
+  const handleRegistration = async (data) => {
+    try {
+      const response = await axios.post(
+        "http://localhost:5000/api/auth/register",
+        data
       );
-    } finally {
-      setIsLoading(false);
+
+      // Show success toast
+      toast.success(
+        "Registration successful! Please login with your credentials.",
+        {
+          duration: 5000,
+        }
+      );
+
+      // Switch to login mode
+      setIsLogin(true);
+
+      // Clear form but keep email
+      reset({
+        email: data.email,
+        password: "",
+        confirmPassword: "",
+      });
+
+      // Focus on password field
+      setTimeout(() => {
+        document.getElementById("password")?.focus();
+      }, 100);
+    } catch (error) {
+      let errorMessage = error.response?.data?.error || "Failed to register";
+
+      // Special handling for inactive account message
+      if (
+        errorMessage.includes("inactive") ||
+        errorMessage.includes("activate")
+      ) {
+        toast.success(
+          "Account created successfully! Please wait for admin approval.",
+          {
+            duration: 6000,
+          }
+        );
+
+        // Still switch to login mode
+        setIsLogin(true);
+        reset({
+          email: data.email,
+          password: "",
+          confirmPassword: "",
+        });
+      } else {
+        toast.error(errorMessage);
+      }
     }
   };
 
@@ -71,6 +141,7 @@ const AuthForm = () => {
     setIsLogin(!isLogin);
     reset();
   };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-white p-4">
       <motion.div
@@ -117,6 +188,7 @@ const AuthForm = () => {
                       errors.name ? "border-red-500" : "border-gray-300"
                     } rounded-md focus:outline-none focus:ring-1 focus:ring-gray-500 focus:border-gray-500 transition duration-200`}
                     placeholder="John Doe"
+                    autoFocus={!isLogin}
                   />
                   {errors.name && (
                     <p className="mt-1 text-sm text-red-600">
@@ -148,6 +220,7 @@ const AuthForm = () => {
                   errors.email ? "border-red-500" : "border-gray-300"
                 } rounded-md focus:outline-none focus:ring-1 focus:ring-gray-500 focus:border-gray-500 transition duration-200`}
                 placeholder="you@example.com"
+                autoFocus={isLogin}
               />
               {errors.email && (
                 <p className="mt-1 text-sm text-red-600">
@@ -196,6 +269,11 @@ const AuthForm = () => {
                   {errors.password.message}
                 </p>
               )}
+              {!isLogin && (
+                <p className="mt-1 text-xs text-gray-500">
+                  Password must be at least 8 characters long
+                </p>
+              )}
             </div>
 
             {!isLogin && (
@@ -217,9 +295,10 @@ const AuthForm = () => {
                       type={showConfirmPassword ? "text" : "password"}
                       {...register("confirmPassword", {
                         required: !isLogin && "Please confirm your password",
-                        validate: (value) =>
-                          value === document.getElementById("password").value ||
-                          "Passwords don't match",
+                        validate: (value) => {
+                          const password = getValues("password");
+                          return value === password || "Passwords don't match";
+                        },
                       })}
                       className={`w-full px-4 py-2 border ${
                         errors.confirmPassword
@@ -270,14 +349,14 @@ const AuthForm = () => {
                   </label>
                 </div>
 
-                {/* <div className="text-sm">
+                <div className="text-sm">
                   <Link
                     to="/forgot-password"
                     className="font-medium text-gray-600 hover:text-gray-500 transition duration-150"
                   >
                     Forgot password?
                   </Link>
-                </div> */}
+                </div>
               </div>
             )}
 
@@ -285,7 +364,7 @@ const AuthForm = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition duration-200"
+                className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? (
                   <>
@@ -309,7 +388,7 @@ const AuthForm = () => {
                         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                       ></path>
                     </svg>
-                    Processing...
+                    {isLogin ? "Signing in..." : "Creating account..."}
                   </>
                 ) : isLogin ? (
                   "Sign in"
@@ -320,7 +399,7 @@ const AuthForm = () => {
             </div>
           </form>
 
-          {/* <div className="mt-6">
+          <div className="mt-6">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-300"></div>
@@ -343,7 +422,16 @@ const AuthForm = () => {
                 {isLogin ? "Create new account" : "Sign in instead"}
               </button>
             </div>
-          </div> */}
+          </div>
+
+          {!isLogin && (
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <p className="text-xs text-gray-500 text-center">
+                After registration, your account will be inactive by default.
+                Please contact the administrator to activate your account.
+              </p>
+            </div>
+          )}
         </div>
       </motion.div>
     </div>

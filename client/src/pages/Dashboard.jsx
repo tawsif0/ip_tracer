@@ -1,12 +1,13 @@
 /* eslint-disable no-unused-vars */
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../hooks/useAuth";
 import axios from "axios";
 import Analytics from "../components/Dashboard/Analytics";
 import LinkManagement from "../components/Dashboard/LinkManagement";
 import LacCellConverter from "../components/Dashboard/LacCellConverter";
-
 import Settings from "../components/Dashboard/Settings";
+import AdminPanel from "../components/Dashboard/AdminPanel";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FiLink,
@@ -18,11 +19,14 @@ import {
   FiLogOut,
   FiUser,
   FiNavigation,
+  FiUsers,
+  FiGlobe,
+  FiShield,
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 
-// Memoized content components to prevent unnecessary re-renders
+// Memoized content components
 const TabContent = React.memo(
   ({
     activeTab,
@@ -32,6 +36,8 @@ const TabContent = React.memo(
     user,
     onLinkCreated,
     onRefreshAnalytics,
+    permissions,
+    availableDomains,
   }) => {
     switch (activeTab) {
       case "links":
@@ -40,6 +46,8 @@ const TabContent = React.memo(
             links={links}
             setLinks={setLinks}
             onLinkCreated={onLinkCreated}
+            permissions={permissions}
+            availableDomains={availableDomains}
           />
         );
       case "analytics":
@@ -48,32 +56,76 @@ const TabContent = React.memo(
             stats={stats}
             links={links}
             onRefresh={onRefreshAnalytics}
+            permissions={permissions}
           />
         );
-      case "converter": // Add this case
-        return <LacCellConverter />;
+      case "converter":
+        return permissions?.lacCellConverter ? (
+          <LacCellConverter />
+        ) : (
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <FiShield className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900">
+                Access Restricted
+              </h3>
+              <p className="text-gray-600">
+                You don't have permission to access this feature.
+              </p>
+              <p className="text-sm text-gray-500 mt-1">
+                Contact your administrator for access.
+              </p>
+            </div>
+          </div>
+        );
       case "settings":
         return <Settings user={user} />;
+      case "admin":
+        return user?.role === "admin" ? (
+          <AdminPanel />
+        ) : (
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <FiShield className="w-16 h-16 text-red-500 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900">
+                Admin Access Required
+              </h3>
+              <p className="text-gray-600">
+                This area is restricted to administrators only.
+              </p>
+            </div>
+          </div>
+        );
       default:
         return (
           <LinkManagement
             links={links}
             setLinks={setLinks}
             onLinkCreated={onLinkCreated}
+            permissions={permissions}
+            availableDomains={availableDomains}
           />
         );
     }
   }
 );
 
-TabContent.displayName = "TabContent";
-
 const Dashboard = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  // Get active tab from localStorage or default to "links"
   const [activeTab, setActiveTab] = useState(() => {
-    return localStorage.getItem("dashboardActiveTab") || "links";
+    // First check localStorage
+    const savedTab = localStorage.getItem("dashboardActiveTab");
+
+    if (!savedTab) {
+      if (user?.role === "admin") {
+        return "admin";
+      } else {
+        return "links";
+      }
+    }
+
+    return savedTab;
   });
   const [links, setLinks] = useState([]);
   const [stats, setStats] = useState(null);
@@ -83,8 +135,22 @@ const Dashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [permissions, setPermissions] = useState({});
+  const [availableDomains, setAvailableDomains] = useState([]);
 
-  // Check screen size on mount and resize
+  useEffect(() => {
+    // When user data loads, set the appropriate default tab
+    if (user && !localStorage.getItem("dashboardActiveTab")) {
+      if (user.role === "admin") {
+        setActiveTab("admin");
+        localStorage.setItem("dashboardActiveTab", "admin");
+      } else {
+        setActiveTab("links");
+        localStorage.setItem("dashboardActiveTab", "links");
+      }
+    }
+  }, [user]);
+
   useEffect(() => {
     const checkScreenSize = () => {
       const mobile = window.innerWidth < 768;
@@ -105,25 +171,33 @@ const Dashboard = () => {
 
   // Update localStorage whenever activeTab changes
   useEffect(() => {
-    const savedTab = localStorage.getItem("dashboardActiveTab");
-    if (savedTab) {
-      setActiveTab(savedTab);
+    if (user && activeTab) {
+      localStorage.setItem("dashboardActiveTab", activeTab);
     }
-  }, []);
+  }, [activeTab, user]);
 
   const fetchData = async () => {
     try {
-      const [linksRes, statsRes] = await Promise.all([
-        axios.get("https://api.cleanpc.xyz/api/links/user", {
+      const [linksRes, statsRes, domainsRes] = await Promise.all([
+        axios.get("http://localhost:5000/api/links/user", {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         }),
-        axios.get("https://api.cleanpc.xyz/api/stats/summary", {
+        axios.get("http://localhost:5000/api/stats/summary", {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        }),
+        axios.get("http://localhost:5000/api/domains/user/available", {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         }),
       ]);
 
       setLinks(linksRes.data);
       setStats(statsRes.data);
+      setAvailableDomains(domainsRes.data);
+
+      // Set permissions from user data
+      if (user?.permissions) {
+        setPermissions(user.permissions);
+      }
     } catch (error) {
       console.error("Error fetching data:", error);
       toast.error("Failed to load data");
@@ -135,9 +209,11 @@ const Dashboard = () => {
       fetchData();
     }
   }, [user, refreshKey]);
+
   const handleRefreshAnalytics = () => {
     setRefreshKey((prev) => prev + 1);
   };
+
   const handleLinkCreated = () => {
     setRefreshKey((prev) => prev + 1);
   };
@@ -163,15 +239,24 @@ const Dashboard = () => {
   };
 
   const confirmLogout = () => {
-    logout();
-    toast.success("Logout successful!");
-    setTimeout(() => {
-      navigate("/", { replace: true });
-    }, 800);
+    // First hide the modal
     setShowLogoutConfirm(false);
+
+    // Show success message
+    toast.success("Logout successful!");
+
+    // Use a single timeout for both actions
+    setTimeout(() => {
+      // Perform logout (this clears localStorage)
+      logout();
+
+      // Navigate to home - use replace: true to prevent back navigation
+      navigate("/", { replace: true });
+    }, 300); // Reduced from 800ms to 300ms
   };
 
-  const navItems = [
+  // Base navigation items for regular users
+  const baseNavItems = [
     {
       name: "My Links",
       icon: <FiLink />,
@@ -184,15 +269,47 @@ const Dashboard = () => {
     },
     {
       name: "Cell Converter",
-      icon: <FiNavigation />, // You might want to add a new icon import: FiMapPin
+      icon: <FiNavigation />,
       tab: "converter",
+      requiresPermission: "lacCellConverter",
     },
-    // {
-    //   name: "Settings",
-    //   icon: <FiSettings />,
-    //   tab: "settings",
-    // },
+    {
+      name: "Settings",
+      icon: <FiSettings />,
+      tab: "settings",
+    },
   ];
+
+  // Admin-only navigation items
+  const adminNavItems = [
+    {
+      name: "Admin Panel",
+      icon: <FiUsers />,
+      tab: "admin",
+    },
+    {
+      name: "Settings",
+      icon: <FiSettings />,
+      tab: "settings",
+    },
+  ];
+
+  // Determine navigation items based on user role
+  let navItems;
+  if (user?.role === "admin") {
+    navItems = adminNavItems;
+  } else {
+    navItems = baseNavItems;
+  }
+
+  // Filter nav items based on permissions (for regular users only)
+  const filteredNavItems =
+    user?.role === "admin"
+      ? navItems // Admin sees all their items without permission filtering
+      : navItems.filter((item) => {
+          if (!item.requiresPermission) return true;
+          return permissions[item.requiresPermission] || user?.role === "admin";
+        });
 
   return (
     <div className="bg-white min-h-screen flex items-center justify-center p-2 md:p-4 relative">
@@ -204,7 +321,6 @@ const Dashboard = () => {
           flex items-center justify-between px-4 z-50 md:hidden 
           animate-slideDown"
         >
-          {/* Left: Menu Button */}
           <button
             onClick={toggleSidebar}
             className="p-2 rounded-2xl text-gray-600 
@@ -228,9 +344,11 @@ const Dashboard = () => {
           </button>
           <div className="flex flex-col items-center">
             <h1 className="text-lg font-bold text-gray-900">Dashboard</h1>
-            <p className="text-xs text-gray-600">Link Management</p>
+            <p className="text-xs text-gray-600">
+              {user?.role === "admin" ? "Administrator" : "User"}
+            </p>
           </div>
-          <div className="w-10"></div> {/* Spacer for balance */}
+          <div className="w-10"></div>
         </div>
       )}
 
@@ -267,7 +385,9 @@ const Dashboard = () => {
                 className="flex flex-col"
               >
                 <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
-                <p className="text-xs text-gray-600">Link Management</p>
+                <p className="text-xs text-gray-600">
+                  {user?.role === "admin" ? "Administrator" : "User"}
+                </p>
               </motion.div>
 
               <button
@@ -281,7 +401,7 @@ const Dashboard = () => {
             {/* Navigation */}
             <nav className="flex-1 overflow-y-auto py-4 px-4">
               <ul className="space-y-2">
-                {navItems.map((item) => {
+                {filteredNavItems.map((item) => {
                   const isActive = activeTab === item.tab;
                   return (
                     <li key={item.tab}>
@@ -316,7 +436,7 @@ const Dashboard = () => {
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse"></div>
                   <span className="text-indigo-400 text-sm font-semibold">
-                    ACTIVE
+                    {user?.role === "admin" ? "ADMIN" : "ACTIVE"}
                   </span>
                 </div>
                 <p className="text-gray-700 text-sm">
@@ -386,11 +506,13 @@ const Dashboard = () => {
                   className="flex flex-col"
                 >
                   <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
-                  <p className="text-xs text-gray-600">Link Management</p>
+                  <p className="text-xs text-gray-600">
+                    {user?.role === "admin" ? "Administrator" : "User"}
+                  </p>
                 </motion.div>
               ) : (
                 <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold shadow-md">
-                  L
+                  {user?.role === "admin" ? "A" : "U"}
                 </div>
               )}
 
@@ -410,7 +532,7 @@ const Dashboard = () => {
             {/* Navigation */}
             <nav className="flex-1 overflow-y-auto py-4 px-4">
               <ul className="space-y-2">
-                {navItems.map((item) => {
+                {filteredNavItems.map((item) => {
                   const isActive = activeTab === item.tab;
                   return (
                     <li key={item.tab}>
@@ -452,7 +574,7 @@ const Dashboard = () => {
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse"></div>
                     <span className="text-indigo-400 text-sm font-semibold">
-                      ACTIVE
+                      {user?.role === "admin" ? "ADMIN" : "ACTIVE"}
                     </span>
                   </div>
                   <p className="text-gray-700 text-sm">
@@ -518,6 +640,7 @@ const Dashboard = () => {
                   {activeTab === "analytics" && "Analytics"}
                   {activeTab === "converter" && "Cell to Location Converter"}
                   {activeTab === "settings" && "Settings"}
+                  {activeTab === "admin" && "Admin Panel"}
                 </h1>
                 <p className="text-gray-600 mt-1">
                   {activeTab === "links" &&
@@ -526,11 +649,13 @@ const Dashboard = () => {
                   {activeTab === "converter" &&
                     "Convert cell tower data to geographic coordinates"}
                   {activeTab === "settings" && "Manage your account settings"}
+                  {activeTab === "admin" &&
+                    "Manage users, domains, and permissions"}
                 </p>
               </div>
 
               {/* Stats Summary */}
-              {activeTab !== "settings" && (
+              {activeTab !== "settings" && activeTab !== "admin" && (
                 <div className="hidden md:flex items-center space-x-6">
                   <div className="text-center">
                     <div className="text-2xl font-bold text-indigo-600">
@@ -573,6 +698,8 @@ const Dashboard = () => {
                   user={user}
                   onLinkCreated={handleLinkCreated}
                   onRefreshAnalytics={handleRefreshAnalytics}
+                  permissions={permissions}
+                  availableDomains={availableDomains}
                 />
               </motion.div>
             </AnimatePresence>

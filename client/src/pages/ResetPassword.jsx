@@ -26,7 +26,7 @@ const ResetPassword = () => {
     setIsLoading(true);
     try {
       await axios.post(
-        `https://api.cleanpc.xyz/api/auth/reset-password/${token}`,
+        `http://localhost:5000/api/auth/reset-password/${token}`,
         data
       );
       setPasswordReset(true);

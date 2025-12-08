@@ -242,7 +242,7 @@ const LacCellConverter = () => {
         console.log("UnwiredLabs Response:", apiResponse);
       } catch (unwiredError) {
         console.log("UnwiredLabs failed, trying OpenCellID...");
-        toast.loading("Trying alternative database...", { id: loadingToast });
+        toast.loading("Trying alternative solution...", { id: loadingToast });
         apiResponse = await queryOpenCellID();
         setApiSource("OpenCellID");
       }
@@ -273,7 +273,7 @@ const LacCellConverter = () => {
         const url = `https://www.google.com/maps?q=${apiResponse.lat},${apiResponse.lon}&z=15`;
         setMapUrl(url);
 
-        toast.success(`Location found using ${apiSource}!`);
+        toast.success(`Location found `);
       } else if (apiResponse && apiResponse.lat && apiResponse.lon) {
         // OpenCellID successful response
         setResult({
@@ -300,7 +300,7 @@ const LacCellConverter = () => {
         toast.success(`Location found using ${apiSource}!`);
       } else {
         // No data found
-        let errorMsg = "Cell tower not found in databases";
+        let errorMsg = "Cell tower not found ";
 
         if (apiResponse?.message) {
           errorMsg = apiResponse.message;
@@ -339,13 +339,11 @@ const LacCellConverter = () => {
 
       if (error.response) {
         if (error.response.status === 401) {
-          errorMessage =
-            "Invalid API key. Please check your UnwiredLabs API key.";
+          errorMessage = "Invalid ";
         } else if (error.response.status === 402) {
-          errorMessage =
-            "Insufficient balance. Please top up your UnwiredLabs account.";
+          errorMessage = "Insufficient balance.";
         } else if (error.response.status === 403) {
-          errorMessage = "Access forbidden. Check your API permissions.";
+          errorMessage = "Access forbidden.";
         } else if (error.response.data?.message) {
           errorMessage = error.response.data.message;
         } else if (error.response.data?.error) {
@@ -388,65 +386,6 @@ const LacCellConverter = () => {
       lac: sample.lac,
       cid: sample.cid,
     });
-    toast.success(`Loaded: ${sample.description} (${sample.area})`);
-  };
-
-  const openInBdMap = (lat, lon) => {
-    if (!lat || !lon) return;
-    const bdMapsUrl = `https://www.google.com/maps/@${lat},${lon},15z`;
-    window.open(bdMapsUrl, "_blank");
-  };
-
-  const openUnwiredLabsDashboard = () => {
-    window.open("https://my.unwiredlabs.com/dashboard", "_blank");
-  };
-
-  const testUnwiredLabsConnection = async () => {
-    try {
-      const apiKey = import.meta.env.VITE_UNWIREDLABS_API_KEY;
-
-      if (!apiKey || apiKey === "your_unwiredlabs_api_key_here") {
-        toast.error("UnwiredLabs API key not configured");
-        return;
-      }
-
-      toast.loading("Testing UnwiredLabs connection...");
-
-      // Test with a known cell (using sample data)
-      const testResponse = await axios.post(
-        "https://us1.unwiredlabs.com/v2/process.php",
-        {
-          token: apiKey,
-          radio: "gsm",
-          mcc: 470,
-          mnc: 1,
-          cells: [
-            {
-              lac: 5017,
-              cid: 29456,
-            },
-          ],
-        },
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-          timeout: 10000,
-        }
-      );
-
-      toast.dismiss();
-
-      if (testResponse.data.status === "ok") {
-        toast.success("UnwiredLabs API is working correctly!");
-        console.log("Test response:", testResponse.data);
-      } else {
-        toast.error(`API returned: ${testResponse.data.message}`);
-      }
-    } catch (error) {
-      toast.dismiss();
-      toast.error(`Connection test failed: ${error.message}`);
-    }
   };
 
   return (

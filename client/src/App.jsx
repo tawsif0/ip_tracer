@@ -12,6 +12,7 @@ import { useAuth } from "./hooks/useAuth";
 import AuthForm from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import { Toaster } from "react-hot-toast";
 
 function App() {
   const { user, isLoading } = useAuth();
@@ -31,6 +32,26 @@ function App() {
         v7_relativeSplatPath: true,
       }}
     >
+      <Toaster
+        position="top-center"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: "#fff",
+            color: "#000",
+          },
+          success: {
+            duration: 3000,
+            theme: {
+              primary: "green",
+              secondary: "black",
+            },
+          },
+          error: {
+            duration: 4000,
+          },
+        }}
+      />
       <Routes>
         <Route
           path="/login"
