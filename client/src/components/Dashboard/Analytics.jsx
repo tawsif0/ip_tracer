@@ -1180,14 +1180,14 @@ const IPDRRequestModal = ({ links, onClose, visitLogs }) => {
     salutation: "Dear Sir,",
     requestText:
       "Provide please IPDR mentioned below target IP within date range.",
-    officerName: "Investigation Officer:",
-    officerMobile: "Mob:",
-    regards: "Regards:",
-    senderName: "Name",
-    bpNumber: "BP-",
-    designation: "Designation",
-    senderMobile: "Mob:",
-    senderLabel: "Sender:",
+    officerName: "Investigation Officer: ",
+    officerMobile: "Mob: ",
+    regards: "Regards: ",
+    senderName: "Name: ",
+    bpNumber: "BP- ",
+    designation: "Designation: ",
+    senderMobile: "Mob: ",
+    senderLabel: "Sender: ",
   });
 
   // Function to fetch ISP data for an IP
@@ -1572,14 +1572,14 @@ const IPDRRequestModal = ({ links, onClose, visitLogs }) => {
       salutation: "Dear Sir,",
       requestText:
         "Provide please IPDR mentioned below target IP within date range.",
-      officerName: "Investigation Officer:",
+      officerName: "Investigation Officer: ",
       officerMobile: "Mob:",
       regards: "Regards:",
-      senderName: "Name",
-      bpNumber: "BP-",
-      designation: "Designation",
-      senderMobile: "Mob:",
-      senderLabel: "Sender:",
+      senderName: "Name: ",
+      bpNumber: "BP- ",
+      designation: "Designation: ",
+      senderMobile: "Mob: ",
+      senderLabel: "Sender: ",
     });
     setStep(1);
   };
