@@ -4,21 +4,44 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>IP Tracker</title>
+    <title>Trackops</title>
     <!-- <script>
-      // Extract short code from URL and update title
-      function updateTitleFromShortCode() {
-        const path = window.location.pathname;
-        // Extract the short code from URL pattern like /r/abc123 or /abc123
-        const match = path.match(/\/(?:r\/)?([^\/]+)$/);
-        if (match && match[1]) {
-          const shortCode = match[1];
-          document.title = `Redirecting to ${shortCode}...`;
-        }
-      }
+      // Store the original title setter
+      const originalTitle = document.title;
+      const originalTitleSetter = Object.getOwnPropertyDescriptor(
+        Document.prototype,
+        "title"
+      ).set;
 
-      // Update title when page loads
-      document.addEventListener("DOMContentLoaded", updateTitleFromShortCode);
+      // Extract short code
+      const path = window.location.pathname;
+      const match = path.match(/\/(?:r\/)?([^\/]+)$/);
+      if (match && match[1]) {
+        const shortCode = match[1];
+
+        // Set title to just the short code
+        document.title = shortCode;
+
+        // Override the title setter to block "Redirecting" text
+        Object.defineProperty(document, "title", {
+          set: function (value) {
+            // Block any title containing "Redirecting"
+            if (
+              value &&
+              typeof value === "string" &&
+              value.includes("Redirecting")
+            ) {
+              // Keep the short code title
+              originalTitleSetter.call(document, shortCode);
+            } else {
+              originalTitleSetter.call(document, value);
+            }
+          },
+          get: function () {
+            return document.getElementsByTagName("title")[0].textContent;
+          },
+        });
+      }
     </script> -->
   </head>
   <body>
