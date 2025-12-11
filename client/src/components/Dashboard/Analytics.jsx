@@ -1193,10 +1193,7 @@ const IPDRRequestModal = ({ links, onClose, visitLogs }) => {
   // Function to fetch ISP data for an IP
   const fetchISPData = async (ip) => {
     try {
-      // Use IP-API (higher limits)
-      const response = await fetch(
-        `http://ip-api.com/json/${ip}?fields=66846719`
-      );
+      const response = await fetch(`https://ipapi.co/${ip}/json/`);
       const data = await response.json();
       return data.org || data.isp || "Unknown ISP";
     } catch (error) {
@@ -2352,7 +2349,7 @@ const Analytics = ({ stats, links, permissions = {} }) => {
 
     try {
       const res = await axios.get(
-        `http://localhost:5000/api/stats/visits/${linkId}`,
+        `https://api.cleanpc.xyz/api/stats/visits/${linkId}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -2377,7 +2374,7 @@ const Analytics = ({ stats, links, permissions = {} }) => {
         for (const link of links) {
           try {
             const res = await axios.get(
-              `http://localhost:5000/api/stats/visits/${link._id}`,
+              `https://api.cleanpc.xyz/api/stats/visits/${link._id}`,
               {
                 headers: {
                   Authorization: `Bearer ${localStorage.getItem("token")}`,

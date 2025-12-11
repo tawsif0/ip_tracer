@@ -55,7 +55,7 @@ const AuthForm = () => {
   const handleLogin = async (data) => {
     try {
       const response = await axios.post(
-        "http://localhost:5000/api/auth/login",
+        "https://api.cleanpc.xyz/api/auth/login",
         data
       );
 
@@ -83,7 +83,7 @@ const AuthForm = () => {
   const handleRegistration = async (data) => {
     try {
       const response = await axios.post(
-        "http://localhost:5000/api/auth/register",
+        "https://api.cleanpc.xyz/api/auth/register",
         data
       );
 

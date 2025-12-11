@@ -179,13 +179,13 @@ const Dashboard = () => {
   const fetchData = async () => {
     try {
       const [linksRes, statsRes, domainsRes] = await Promise.all([
-        axios.get("http://localhost:5000/api/links/user", {
+        axios.get("https://api.cleanpc.xyz/api/links/user", {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         }),
-        axios.get("http://localhost:5000/api/stats/summary", {
+        axios.get("https://api.cleanpc.xyz/api/stats/summary", {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         }),
-        axios.get("http://localhost:5000/api/domains/user/available", {
+        axios.get("https://api.cleanpc.xyz/api/domains/user/available", {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         }),
       ]);

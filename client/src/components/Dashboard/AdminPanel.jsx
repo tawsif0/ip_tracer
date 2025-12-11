@@ -821,10 +821,10 @@ const AdminPanel = () => {
     try {
       setLoading(true);
       const [usersRes, domainsRes] = await Promise.all([
-        axios.get("http://localhost:5000/api/auth/users", {
+        axios.get("https://api.cleanpc.xyz/api/auth/users", {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         }),
-        axios.get("http://localhost:5000/api/domains", {
+        axios.get("https://api.cleanpc.xyz/api/domains", {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         }),
       ]);
@@ -842,7 +842,7 @@ const AdminPanel = () => {
   const updateUserPermissions = async (userId, permissions) => {
     try {
       await axios.put(
-        `http://localhost:5000/api/auth/users/${userId}/permissions`,
+        `https://api.cleanpc.xyz/api/auth/users/${userId}/permissions`,
         { permissions },
         {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
@@ -866,7 +866,7 @@ const AdminPanel = () => {
   const toggleUserStatus = async (userId, isActive) => {
     try {
       await axios.put(
-        `http://localhost:5000/api/auth/users/${userId}/status`,
+        `https://api.cleanpc.xyz/api/auth/users/${userId}/status`,
         { isActive },
         {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
@@ -897,7 +897,7 @@ const AdminPanel = () => {
 
     try {
       await axios.delete(
-        `http://localhost:5000/api/auth/users/${userToDelete._id}`,
+        `https://api.cleanpc.xyz/api/auth/users/${userToDelete._id}`,
         {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         }
@@ -921,7 +921,7 @@ const AdminPanel = () => {
       }
 
       const response = await axios.post(
-        "http://localhost:5000/api/domains",
+        "https://api.cleanpc.xyz/api/domains",
         newDomain,
         {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
@@ -941,7 +941,7 @@ const AdminPanel = () => {
     if (!window.confirm("Are you sure you want to delete this domain?")) return;
 
     try {
-      await axios.delete(`http://localhost:5000/api/domains/${domainId}`, {
+      await axios.delete(`https://api.cleanpc.xyz/api/domains/${domainId}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
 
@@ -981,7 +981,7 @@ const AdminPanel = () => {
       // Assign new domains
       const assignPromises = domainsToAssign.map((domainId) =>
         axios.post(
-          `http://localhost:5000/api/domains/${domainId}/assign/${assignDomain.userId}`,
+          `https://api.cleanpc.xyz/api/domains/${domainId}/assign/${assignDomain.userId}`,
           {},
           {
             headers: {
@@ -994,7 +994,7 @@ const AdminPanel = () => {
       // Remove deselected domains
       const removePromises = domainsToRemove.map((domainId) =>
         axios.delete(
-          `http://localhost:5000/api/domains/${domainId}/unassign/${assignDomain.userId}`,
+          `https://api.cleanpc.xyz/api/domains/${domainId}/unassign/${assignDomain.userId}`,
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -1044,7 +1044,7 @@ const AdminPanel = () => {
 
       // Also remove user from domain's allowedUsers
       await axios.delete(
-        `http://localhost:5000/api/domains/${domainId}/unassign/${userId}`,
+        `https://api.cleanpc.xyz/api/domains/${domainId}/unassign/${userId}`,
         {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         }

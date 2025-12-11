@@ -40,7 +40,7 @@ const Settings = ({ user }) => {
       };
 
       const response = await axios.put(
-        "http://localhost:5000/api/auth/profile",
+        "https://api.cleanpc.xyz/api/auth/profile",
         updatedData,
         {
           headers: {
@@ -64,11 +64,15 @@ const Settings = ({ user }) => {
   const onSubmitPassword = async (data) => {
     setIsPasswordLoading(true);
     try {
-      await axios.put("http://localhost:5000/api/auth/change-password", data, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
+      await axios.put(
+        "https://api.cleanpc.xyz/api/auth/change-password",
+        data,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
 
       toast.success("Password changed successfully! Please login again.");
       resetPasswordForm();
